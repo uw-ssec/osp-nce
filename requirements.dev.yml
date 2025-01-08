@@ -1,0 +1,16 @@
+name: grace
+channels:
+  - defaults
+dependencies:
+  - python
+  - sqlalchemy
+  - pymssql
+  - python-dotenv
+  - pandas
+  - numpy
+  - scipy
+  - matplotlib
+  - pip
+  - pip:
+      - ipython
+      - ipykernel
