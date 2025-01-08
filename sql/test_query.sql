@@ -1,0 +1,3 @@
+SELECT
+    *
+FROM RADDB.UW.vEGC1
