@@ -1,2 +1,35 @@
+[project]
+name = "osp-nce"
+version = "0.1.0"
+description = "Grant Review Automation for Compliance Efficiency"
+readme = "README.md"  
+requires-python = ">=3.8" 
+license = { text = "BSD-3-Clause" }
+
 [tool.black]
 line-length = 80
+
+[tool.pixi.project]
+name = "osp-nce"
+channels = ["conda-forge"]
+platforms = ["osx-arm64"] # TODO Change this according to current system
+
+[tool.pixi.dependencies]
+python = ">=3.8"
+sqlalchemy = "*"
+pymssql = "*"
+python-dotenv = "*"
+pandas = "*"
+numpy = "*"
+scipy = "*"
+matplotlib = "*"
+pip = "*"
+streamlit = ">=1.9.2,<2"
+
+[tool.pixi.pypi-dependencies]
+osp-nce = { path = ".", editable = true }
+ipython = "*"
+ipykernel = "*"
+
+[tool.pixi.tasks]
+# Define any custom tasks here, e.g., linting, testing, or running scripts
