@@ -1,6 +1,7 @@
 /*
-Test database connection functions (fetch the entire vEGC1 view).
+Sample query for testing database connection functions.
 */
 SELECT
-    *
-FROM RADDB.UW_rpt.vEGC1
+    TOP 1000 *
+FROM
+    RADDB.UW_rpt.vEGC1

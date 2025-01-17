@@ -20,15 +20,15 @@ from dotenv import load_dotenv
 
 
 def get_connection():
-    """Establish a connection to the EDW using SQLAlchemy.
+    """Establish a connection to RAD using SQLAlchemy.
 
     Raises:
     - EnvironmentError: If one or more environment variables are not set.
 
     Returns:
-    - sqlalchemy.engine.base.Connection: A connection to the EDW.
+    - sqlalchemy.engine.base.Connection: A connection to RAD.
     """
-    REQUIRED_VARS = ["DB_USER", "DB_PASSWORD", "DB_SERVER"]
+    REQUIRED_VARS = ["DB_USER", "DB_PASSWORD", "DB_SERVER" "DB_DATABASE"]
 
     # Load environment variables from .env file if not already set
     if not all(os.getenv(var) for var in REQUIRED_VARS):
@@ -46,7 +46,7 @@ def get_connection():
     # Establish the database connection
     connection_url = sqlalchemy.engine.url.URL.create(
         drivername="mssql+pymssql",
-        username=f"netid\\{user}",
+        username=f"netid\\{user}",  # Have to prepend the username with "netid"
         password=password,
         host=server,
         database=database,
