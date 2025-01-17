@@ -62,14 +62,13 @@ def fetch_query_result(query_path, conn, params=None):
     Args:
     - query_path: The path to the SQL query.
     - conn (sqlalchemy.engine.base.Connection): A database connection object.
-    - params (dict, optional): A dictionary of parameters to substitute into
-        the query.
+    - params (dict, optional): A dictionary of parameters to substitute into the query.
 
     Returns:
     - pd.DataFrame: A DataFrame containing the result set of the query.
     """
     with open(query_path, "r") as query_file:
         query = query_file.read()
-        if params:
-            query = Template(query).substitute(params)
-        return pd.read_sql(query, conn)
+        # Use `params` as a dictionary if provided
+        return pd.read_sql(query, conn, params=(params,))
+
