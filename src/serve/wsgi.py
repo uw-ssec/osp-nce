@@ -24,7 +24,7 @@ async def ping() -> Dict[str, str]:
     message = (
         f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Status Code {status}, health check {'passed' if health else 'failed'}"
     )
-    return {"message": message, "status": status}
+    return {"message": message}
 
 @app.get("/run/")
 async def run(pi_name:str, mod_id:str) -> Dict[str, str]:

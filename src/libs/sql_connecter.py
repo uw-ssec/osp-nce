@@ -6,7 +6,11 @@ import sqlalchemy
 from dotenv import load_dotenv
 
 class SQLConnecter:
+    """
+    SQL Connecter class to connect to the SQL Server database.
+    """
     def __init__(self):
+        # Check if the required environment variables are set
         self.required_vars = ["DB_USER", "DB_PASSWORD", "DB_SERVER", "DB_DATABASE"]
 
         vars_present = True
@@ -34,6 +38,7 @@ class SQLConnecter:
         self.engine = sqlalchemy.create_engine(connection_url)
 
     def query_database(self, query, params = None):
+        # Query the database and return the result as a pandas DataFrame
         connection = self.engine.connect()
         if params:
             query = Template(query).substitute(params)
