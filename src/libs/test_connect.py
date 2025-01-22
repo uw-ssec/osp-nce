@@ -1,5 +1,7 @@
-from sql_connecter import SQLConnecter
-from logger import logging 
+import sys 
+sys.path.append("../")
+from src.libs.sql_connecter import SQLConnecter
+import logging 
 
 logger = logging.getLogger(__name__)
 
@@ -17,4 +19,4 @@ if __name__ == "__main__":
         else:
             logging.error("Test Failed: connection established but no data returned")
     except Exception as e:
-        logging.error("Test failed with error {e}")
+        logging.error(f"Test failed with error {e}")
