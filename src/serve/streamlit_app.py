@@ -160,7 +160,7 @@ class StreamLitApp:
         pi_name, mod_id = self.get_pi_name_mod_id()
         response = requests.get(f"http://localhost:8000/run", params={"pi_name": pi_name, "mod_id": mod_id}).json()
         try:
-            data = response['Data']
+            data = pd.read_json(response['Data'])
             self.instantiate_fillable_page(pi_name, mod_id, data)
         except:
             self.instantiate_error_page()

@@ -33,7 +33,7 @@ async def run(pi_name:str, mod_id:str) -> Dict[str, str]:
         with open(query_file, "r") as f:
             query = f.read()
         df = sql_connecter.query_database(query)
-        return {"Data" : df,
+        return {"Data" : df.to_json(),
                 "Status" : 200}
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
