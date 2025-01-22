@@ -1,5 +1,5 @@
 """
-This module provides functions to connect to and query RAD. 
+Database functions to connect to and query RAD. 
 
 This code requires certain environment variables to be set for authentication. 
 If these variables are not set, it will attempt to load them from a .env file.
@@ -9,11 +9,10 @@ Requirements:
     - DB_USER: Your netid (e.g "jdoe", not 'jdoe@uw.edu')
     - DB_PASSWORD: Your netid password
     - DB_SERVER: "rad-rpt-prod.db.oris.washington.edu"
-    - DB_DATABASE: "RADDB"
+    - DB_DATABASE: "master"
 """
 
 import os
-from string import Template
 
 import pandas as pd
 import sqlalchemy
@@ -21,15 +20,15 @@ from dotenv import load_dotenv
 
 
 def get_connection():
-    """Establish a connection to the EDW using SQLAlchemy.
+    """Establish a connection to RAD using SQLAlchemy.
 
     Raises:
     - EnvironmentError: If one or more environment variables are not set.
 
     Returns:
-    - sqlalchemy.engine.base.Connection: A connection to the EDW.
+    - sqlalchemy.engine.base.Connection: A connection to RAD.
     """
-    REQUIRED_VARS = ["DB_USER", "DB_PASSWORD", "DB_SERVER", "DB_DATABASE"]
+    REQUIRED_VARS = ["DB_USER", "DB_PASSWORD", "DB_SERVER" "DB_DATABASE"]
 
     # Load environment variables from .env file if not already set
     if not all(os.getenv(var) for var in REQUIRED_VARS):
@@ -47,7 +46,7 @@ def get_connection():
     # Establish the database connection
     connection_url = sqlalchemy.engine.url.URL.create(
         drivername="mssql+pymssql",
-        username=f"netid\\{user}",
+        username=f"netid\\{user}",  # Have to prepend the username with "netid"
         password=password,
         host=server,
         database=database,
@@ -71,5 +70,7 @@ def fetch_query_result(query_path, conn, params=None):
     with open(query_path, "r") as query_file:
         query = query_file.read()
         if params:
-            query = Template(query).substitute(params)
-        return pd.read_sql(query, conn)
+            df = pd.read_sql(sqlalchemy.text(query), conn, params=params)
+        else:
+            df = pd.read_sql(sqlalchemy.text(query), conn)
+        return df

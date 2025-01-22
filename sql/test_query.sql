@@ -1,3 +1,7 @@
+/*
+Sample query for testing database connection functions.
+*/
 SELECT
-    *
-FROM RADDB.UW.vEGC1
+    TOP 1000 *
+FROM
+    RADDB.UW_rpt.vEGC1
