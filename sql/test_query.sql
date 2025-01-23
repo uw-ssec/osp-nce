@@ -1,4 +1,4 @@
 SELECT
     *
-FROM RADDB.UW.vEGC1
-WHERE applicationUTN = %s
+FROM RADDB.UW_rpt.vEGC1
+WHERE applicationID = %s
