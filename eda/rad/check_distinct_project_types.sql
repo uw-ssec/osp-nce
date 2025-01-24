@@ -1,2 +1,0 @@
-SELECT DISTINCT projectType 
-FROM RADDB.UW_rpt.vEGC1
