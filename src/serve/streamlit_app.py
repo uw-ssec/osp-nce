@@ -29,7 +29,7 @@ class StreamLitApp:
             "Paid in full?": "",
             "All deliverables submitted?": "No - Extension requires Sponsor approval. Review fixed price terms.",
             "FAR clause 52.222-54 (e-verify)?": "Yes - Forward E-verify process to your campus contact & state in MOD comments that e-verify is required.",
-            "Review Notes" : ""
+            "Review Notes" : "Enter any additional notes here."
         }
         self.fields_map = {
             "rl1" : "SFI Current?",
@@ -49,7 +49,7 @@ class StreamLitApp:
             "rl15" : "Paid in full?",
             "rl16" : "All deliverables submitted?",
             "rl17" : "FAR clause 52.222-54 (e-verify)?",
-            "rl18" : "Review Notes"
+            "notes" : "Review Notes"
         }
         self.fields_map_pdf = {
             "ri1" : "SFI",
@@ -69,7 +69,7 @@ class StreamLitApp:
             "ri15" : "Paid in full",
             "ri16" : "All deliverables  submitted",
             "ri17" : "FAR clause 5222254",
-            "ri18" : "Review Notes",
+            "notes" : "Review Notes",
         }
 
     def get_pi_name_mod_id(self):
@@ -187,7 +187,7 @@ class StreamLitApp:
                     st.text_input(label="", value=autofilled_values[field], key=field, placeholder="Enter value")
                 with col3:
                     st.button("Upload documents", key=f"upload_{field}")
-
+            
             # Add a dummy button at the end for downloading as PDF
             st.markdown("---")
             st.button("Update Extension Review Matrix", key="UpdateMatrix", on_click = self.update_values)
@@ -203,6 +203,8 @@ class StreamLitApp:
         updated_values = {}
         for key in self.fields_map:
             updated_values[key] = st.session_state[self.fields_map[key]]
+        updated_values["PI Name"] = pi_name
+        updated_values["MOD/Worktag ID"] = mod_id
         return updated_values
 
     def download_prefilled_pdf(self):
