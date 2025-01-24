@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd 
 import requests
+from PyPDF2 import PdfReader, PdfWriter
+from datetime import datetime
 
 class StreamLitApp:
     """
@@ -20,14 +22,54 @@ class StreamLitApp:
             "Human Subjects?": "Yes - Verify and document IRB approval(s). Refer to Human Subjects Review Guidance.",
             "Animal Use?": "Yes - Verify and document IACUC approval(s). Refer to Animal Use Compliance Verification guidance.",
             "Prior Approval required?": "Federal award - Review Federal-Wide Research Terms & Conditions (RTCs) Prior Approval Matrix, Appendix A to confirm whether the award requires prior approval.",
-            "Has the project previously been extended?": "",
-            "Is this an NIH 2nd+ extension?": "Yes - Ensure that the Budget, Progress Report, and Programmatic Justification are included as 3 separate PDFs.",
+            "Has the project previously been extended? Is this an NIH 2nd+ extension?": "Yes - Ensure that the Budget, Progress Report, and Programmatic Justification are included as 3 separate PDFs.",
             "Is the request to extend within Sponsor’s required timeframe?": "No - Extension requires Sponsor approval.",
             "Is this a federal contract?": "Yes - Extension requires Sponsor approval.",
             "Fixed Price terms?": "",
             "Paid in full?": "",
             "All deliverables submitted?": "No - Extension requires Sponsor approval. Review fixed price terms.",
-            "FAR clause 52.222-54 (e-verify)?": "Yes - Forward E-verify process to your campus contact & state in MOD comments that e-verify is required."
+            "FAR clause 52.222-54 (e-verify)?": "Yes - Forward E-verify process to your campus contact & state in MOD comments that e-verify is required.",
+            "Review Notes" : ""
+        }
+        self.fields_map = {
+            "rl1" : "SFI Current?",
+            "rl2": "Remaining Balance $$",
+            "rl3" : "Is the award in deficit?",
+            "rl4" : "Is the balance greater than 25% of the total award?",
+            "rl5" : "Award lines listed or 'extend all' indicated?",
+            "rl6" : "Temporary Request?",
+            "rl7" : "New Cost Share?",
+            "rl8" : "Human Subjects?",
+            "rl9" : "Animal Use?",
+            "rl10" : "Prior Approval required?",
+            "rl11" : "Has the project previously been extended? Is this an NIH 2nd+ extension?",
+            "rl12" : "Is the request to extend within Sponsor’s required timeframe?",
+            "rl13" : "Is this a federal contract?",
+            "rl14" : "Fixed Price terms?",
+            "rl15" : "Paid in full?",
+            "rl16" : "All deliverables submitted?",
+            "rl17" : "FAR clause 52.222-54 (e-verify)?",
+            "rl18" : "Review Notes"
+        }
+        self.fields_map_pdf = {
+            "ri1" : "SFI",
+            "ri2" : "RemBal",
+            "ri3" : "Deficit?", 
+            "ri4" : "Greater than 25%?",
+            "ri5" : "Award lines",
+            "ri6" : "TempReq",
+            "ri7" : "CostShare",
+            "ri8" : "HumSub",
+            "ri9" : "AnimalUse",
+            "ri10" : "PriorApp",
+            "ri11" : "PrevExt?",
+            "ri12" : "ExtendInTime?",
+            "ri13" : "FedContract?",
+            "ri14" : 'Fixed Price terms',
+            "ri15" : "Paid in full",
+            "ri16" : "All deliverables  submitted",
+            "ri17" : "FAR clause 5222254",
+            "ri18" : "Review Notes",
         }
 
     def get_pi_name_mod_id(self):
@@ -148,12 +190,36 @@ class StreamLitApp:
 
             # Add a dummy button at the end for downloading as PDF
             st.markdown("---")
-            if st.button("Download as PDF", key="DownloadPDF"):
-                st.write("This will allow the form to be downloaded as a PDF (functionality to be implemented).")
+            st.button("Update Extension Review Matrix", key="UpdateMatrix", on_click = self.update_values)
+            st.button("Download as PDF", key="DownloadPDF", on_click = self.download_prefilled_pdf)
 
     def instantiate_error_page(self):
         # Display an error message if the service encounters an error
         st.error("The service has encountered an error. Please try again later.")
+
+    def update_values(self):
+        # Update the values in the database with the new values
+        pi_name, mod_id = self.get_pi_name_mod_id()
+        updated_values = {}
+        for key in self.fields_map:
+            updated_values[key] = st.session_state[self.fields_map[key]]
+        return updated_values
+
+    def download_prefilled_pdf(self):
+        pi_name, mod_id = self.get_pi_name_mod_id()
+        updated_values = self.update_values()
+        pdf_template = PdfReader(open("assets/extension_review_matrix.pdf", "rb"))
+        writer = PdfWriter()
+        for page in pdf_template.pages:
+            writer.add_page(page)
+            for key, value in self.fields_map_pdf.items():
+                update_dict = {value: updated_values[key]}
+                if value:
+                    writer.update_page_form_field_values(page, update_dict)
+        writer.write("assets/extension_review_matrix_filled.pdf")
+        with open(f"Extension_Review_Matix_{pi_name}_{mod_id}_{datetime.now().strftime('%Y-%m-%d')}.pdf", "wb") as f:
+            writer.write(f)
+
 
     def run_app(self):
         # Run the Streamlit app after validation
