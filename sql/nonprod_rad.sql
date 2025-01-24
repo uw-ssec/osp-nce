@@ -150,4 +150,4 @@ SELECT
 FROM
     rad_data
 WHERE
-    displayIdentifier = :mod_id
+    displayIdentifier = %(mod_id)s
