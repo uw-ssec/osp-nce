@@ -1,4 +1,6 @@
 import logging
+import json
+import pandas
 
 NA_FLAG = "AUTOMATED RESPONSE UNAVAILABLE"
 IN_YES  = "Y"
@@ -11,19 +13,77 @@ logger = logging.getLogger(__name__)
 
 def process_query_result(df):
     
-    authorized_amount = df["awrd.AuthorizedAmount"]
-    billed_to_date_amt = df["awrd.BilledToDateAmount"]
+    """
+    Input:  query results as a dataframe; dataframe is assumed to be a SINGLE ROW, column names refer
+            to names of columns in the database that are used to answer questions on the ERM
+        
+    Output: JSON mapping the abbreviation for each question in the form to its answer
+    """
+    
+    authorized_amount = df.iloc[0,"awrd.AuthorizedAmount"]
+    billed_to_date_amt = df.iloc[0,"awrd.BilledToDateAmount"]
+    
+    ri1 = ri1()
     
     award_balance = ri2(authorized_amount, billed_to_date_amt)
     
-    award_in_deficit = ri3(authorized_amount, billed_to_date_amt)
+    ri3 = ri3(authorized_amount, billed_to_date_amt)
     
     # TODO: check notes and validate w/ Ed – authorized amount or total award?
-    awd_balance_exceeds_threshold = ri4(award_balance, authorized_amount)
+    ri4 = ri4(award_balance, authorized_amount)
     
-    extend_all = None 
+    ri5 = ri5()
     
+    ri6 = ri6()
     
+    ri7 = ri7()
+    
+    is_human_subjects = df.iloc[0, "egc1.isHumanSubjects"]
+    
+    ri8 = ri8(is_human_subjects)
+    
+    is_animal_use = df.iloc[0, "egc1.isAnimalUse"]
+    
+    ri9 = ri9(is_animal_use)
+    
+    ri10 = ri10()
+    
+    num_prior_ext = df.iloc[0, "numberPriorExtensions"]
+    
+    ri11 = ri11(num_prior_ext)
+    
+    sponsor_has_timeframe = df.iloc[0, "mod.sponsorHasDeadline"]
+    sponsor_deadline_date = df.iloc[0, "egc1.sponsorDeadlineDate"]
+    award_schedule_end_date = df.iloc[0, "awrd.AwardScheduleEndDate"]
+    
+    ri12 = ri12(sponsor_has_timeframe, sponsor_deadline_date, award_schedule_end_date)
+    
+    sponsor_entity_type = df.iloc[0, "egc1.FECDMSponsorEntityType"]
+    project_type = df.iloc[0, "egc1.projectType"]
+    ri13 = ri13(sponsor_entity_type, project_type)
+    
+    ri14 = ri14()
+    
+    num_outstanding_payments = df.iloc[0, "numberOutstandingPayments"]
+    ri15 = ri15(num_outstanding_payments)
+    
+    ri16 = ri16()
+    
+    ri17 = ri17()
+    
+    # fill in the output JSON
+    
+    num_items = 17
+    out_dict = dict()
+    
+    for i in range(1, num_items + 1):
+        key = f"ri{i}"
+        value = locals()[key]
+        
+        out_dict[key] = value
+    
+    # return in JSON format
+    return json.dumps(out_dict)        
 
 
 # helper function – translates database encoding for YES/NO to preferred output formatting
@@ -57,7 +117,7 @@ def tf_to_yn(condition):
 
 
 # PLACEHOLDER: SFI current? – not possible from RAD only
-def ri1(sfi_data):
+def ri1():
     
     """
     Input:
@@ -178,4 +238,9 @@ def ri15(number_outstanding_payments):
 # PLACEHOLDER
 # All deliverables submitted?; not possible with RAD data alone
 def ri16():
+    
+    return NA_FLAG
+
+def ri17():
+    
     return NA_FLAG
