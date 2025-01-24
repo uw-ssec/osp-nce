@@ -1,17 +1,29 @@
 import logging
 
 NA_FLAG = "AUTOMATED RESPONSE UNAVAILABLE"
-IN_YES = "Y"
-IN_NO = "N"
+IN_YES  = "Y"
+IN_NO   = "N"
 OUT_YES = "YES"
-OUT_NO = "NO"
+OUT_NO  = "NO"
 AWARD_BALANCE_THRESHOLD = 0.25
 
 logger = logging.getLogger(__name__)
 
-def process_query_result(query_result_df):
+def process_query_result(df):
     
-    return None
+    authorized_amount = df["awrd.AuthorizedAmount"]
+    billed_to_date_amt = df["awrd.BilledToDateAmount"]
+    
+    award_balance = ri2(authorized_amount, billed_to_date_amt)
+    
+    award_in_deficit = ri3(authorized_amount, billed_to_date_amt)
+    
+    # TODO: check notes and validate w/ Ed – authorized amount or total award?
+    awd_balance_exceeds_threshold = ri4(award_balance, authorized_amount)
+    
+    extend_all = None 
+    
+    
 
 
 # helper function – translates database encoding for YES/NO to preferred output formatting
@@ -44,14 +56,14 @@ def tf_to_yn(condition):
             return OUT_NO
 
 
-# SFI current?
+# PLACEHOLDER: SFI current? – not possible from RAD only
 def ri1(sfi_data):
     
     """
     Input:
     Output: String – "YES/NO" specifying if SFI is current
     """
-    return NA_FLAG  # need to better understand logic
+    return NA_FLAG # not possible with just RAD data as of 1/23
 
 # remaining balance $$?
 def ri2(authorized_amount, billed_to_date_amt):
@@ -65,7 +77,6 @@ def ri2(authorized_amount, billed_to_date_amt):
     formatted_remaining = f"${remaining:.2f}"
 
     return formatted_remaining
-
 
 # is the award in deficit?
 def ri3(authorized_amount, billed_to_date_amt):
@@ -87,16 +98,16 @@ def ri4(award_balance, total_award):
     ### included
     
     return tf_to_yn(
-        (award_balance / total_award) > AWARD_BALANCE_THRESHOLD
+        (award_balance / total_award) >= AWARD_BALANCE_THRESHOLD
     )
     
 # award lines listed or "extend all" indicated
-def ri5(award_lines):
+def ri5():
 
     return NA_FLAG
 
 # PLACEHOLDER for temporary request -- need to determine variable to use as input
-def ri6(request_duration):
+def ri6():
     
     return NA_FLAG
 
@@ -131,11 +142,10 @@ def ri10():
     return NA_FLAG
 
 # has the project been previously extended?
-def ri11():
-    
-    ### TODO: Ask Ed – RADDB.vAwardModificationRequest.ModificationType has a 'New' value
-    ### and a "GCA only" value – how should we interpret?
-    return NA_FLAG
+def ri11(number_of_prior_extensions):
+    return tf_to_yn(
+        number_of_prior_extensions > 1
+    )
 
 # request to extend is within sponsor's timeframe?
 def ri12(sponsor_has_timeframe, sponsor_deadline_date, award_schedule_end_date):
@@ -158,6 +168,12 @@ def ri13(sponsor_entity_type, project_type):
 def ri14():
     return NA_FLAG
 
+# PLACEHOLDER
+def ri15(number_outstanding_payments):
+    
+    return tf_to_yn(
+        number_outstanding_payments > 0
+    )
 
 # PLACEHOLDER
 # All deliverables submitted?; not possible with RAD data alone
