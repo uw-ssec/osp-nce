@@ -1,6 +1,7 @@
 import logging
 import json
 import pandas
+import numpy as np
 
 NA_FLAG = "AUTOMATED RESPONSE UNAVAILABLE"
 IN_YES  = "Y"
@@ -12,79 +13,77 @@ AWARD_BALANCE_THRESHOLD = 0.25
 logger = logging.getLogger(__name__)
 
 def process_query_result(df):
-    
     """
     Input:  query results as a dataframe; dataframe is assumed to be a SINGLE ROW, column names refer
-            to names of columns in the database that are used to answer questions on the ERM
+            to names of columns in the database that are used to answer questions on the ERM.
         
-    Output: JSON mapping the abbreviation for each question in the form to its answer
+    Output: JSON mapping the abbreviation for each question in the form to its answer.
     """
     
-    authorized_amount = df.iloc[0,"awrd.AuthorizedAmount"]
-    billed_to_date_amt = df.iloc[0,"awrd.BilledToDateAmount"]
+    # Accessing values by column name using `.loc`
+    authorized_amount = df.loc[0, "awrd.AuthorizedAmount"]
+    billed_to_date_amt = df.loc[0, "awrd.BilledToDateAmount"]
     
-    ri1 = ri1()
+    ri1_ = ri1()
     
-    award_balance = ri2(authorized_amount, billed_to_date_amt)
+    ri2_ = ri2(authorized_amount, billed_to_date_amt)
     
-    ri3 = ri3(authorized_amount, billed_to_date_amt)
+    # needs to be converted back to numerical form to enable computations below 
+    award_balance = float(ri2_.replace("$", "")) 
     
-    # TODO: check notes and validate w/ Ed – authorized amount or total award?
-    ri4 = ri4(award_balance, authorized_amount)
+    ri3_ = ri3(authorized_amount, billed_to_date_amt)
     
-    ri5 = ri5()
+    # TODO: Check notes and validate w/ Ed – authorized amount or total award?
+    ri4_ = ri4(award_balance, authorized_amount)
     
-    ri6 = ri6()
+    ri5_ = ri5()
     
-    ri7 = ri7()
+    ri6_ = ri6()
     
-    is_human_subjects = df.iloc[0, "egc1.isHumanSubjects"]
+    ri7_ = ri7()
     
-    ri8 = ri8(is_human_subjects)
+    is_human_subjects = df.loc[0, "egc1.isHumanSubjects"]
+    ri8_ = ri8(is_human_subjects)
     
-    is_animal_use = df.iloc[0, "egc1.isAnimalUse"]
+    is_animal_use = df.loc[0, "egc1.isAnimalUse"]
+    ri9_ = ri9(is_animal_use)
     
-    ri9 = ri9(is_animal_use)
+    ri10_ = ri10()
     
-    ri10 = ri10()
+    num_prior_ext = df.loc[0, "numberPriorExtensions"]
+    ri11_ = ri11(num_prior_ext)
     
-    num_prior_ext = df.iloc[0, "numberPriorExtensions"]
+    sponsor_has_timeframe = df.loc[0, "mod.sponsorHasDeadline"]
+    sponsor_deadline_date = df.loc[0, "egc1.sponsorDeadlineDate"]
+    award_schedule_end_date = df.loc[0, "awrd.AwardScheduleEndDate"]
     
-    ri11 = ri11(num_prior_ext)
+    ri12_ = ri12(sponsor_has_timeframe, sponsor_deadline_date, award_schedule_end_date)
     
-    sponsor_has_timeframe = df.iloc[0, "mod.sponsorHasDeadline"]
-    sponsor_deadline_date = df.iloc[0, "egc1.sponsorDeadlineDate"]
-    award_schedule_end_date = df.iloc[0, "awrd.AwardScheduleEndDate"]
+    sponsor_entity_type = df.loc[0, "egc1.FECDMSponsorEntityType"]
+    project_type = df.loc[0, "egc1.projectType"]
+    ri13_ = ri13(sponsor_entity_type, project_type)
     
-    ri12 = ri12(sponsor_has_timeframe, sponsor_deadline_date, award_schedule_end_date)
+    ri14_ = ri14()
     
-    sponsor_entity_type = df.iloc[0, "egc1.FECDMSponsorEntityType"]
-    project_type = df.iloc[0, "egc1.projectType"]
-    ri13 = ri13(sponsor_entity_type, project_type)
+    ri15_ = ri15()
     
-    ri14 = ri14()
+    num_outstanding_payments = df.loc[0, "numberOutStandingPayments"]  # Corrected column name
+    ri16_ = ri16(num_outstanding_payments)
     
-    num_outstanding_payments = df.iloc[0, "numberOutstandingPayments"]
-    ri15 = ri15(num_outstanding_payments)
+    ri17_ = ri17()
     
-    ri16 = ri16()
-    
-    ri17 = ri17()
-    
-    # fill in the output JSON
-    
+    # Fill in the output JSON
     num_items = 17
     out_dict = dict()
     
     for i in range(1, num_items + 1):
         key = f"ri{i}"
-        value = locals()[key]
+        value = locals()[f"ri{i}_"]
         
         out_dict[key] = value
     
-    # return in JSON format
-    return json.dumps(out_dict)        
-
+    # Return in JSON format
+    return json.dumps(out_dict)       
 
 # helper function – translates database encoding for YES/NO to preferred output formatting
 def is_yes(db_yes_no):
@@ -96,7 +95,7 @@ def is_yes(db_yes_no):
     Output: "YES" or "NO"
     """
 
-    if isinstance(db_yes_no, str) and (db_yes_no == IN_YES | db_yes_no == IN_NO):
+    if isinstance(db_yes_no, str) and ((db_yes_no == IN_YES) | (db_yes_no == IN_NO)):
 
         if db_yes_no == IN_YES:
             return OUT_YES
@@ -105,16 +104,16 @@ def is_yes(db_yes_no):
     else:
         logger.error("Unexpected input – expected 'Y' or 'N'")
 
-
-# foramtting helper – outputs "YES" if input is TRUE (bool), "NO" otherwise
+# formatting helper – outputs "YES" if input is TRUE (bool), "NO" otherwise
 def tf_to_yn(condition):
     
-    if isinstance(condition, bool):
+    if isinstance(condition, (bool, np.bool_)):
         if condition:
             return OUT_YES
         else:
             return OUT_NO
-
+    else:
+        raise Exception(f"Expected boolean input, got {type(condition)} instead")
 
 # PLACEHOLDER: SFI current? – not possible from RAD only
 def ri1():
@@ -145,7 +144,7 @@ def ri3(authorized_amount, billed_to_date_amt):
     Input: floats representing the amounts ($) authorized and billed, respectively, for the award
     Output: "YES" if billed amt. exceeds authorized; "NO" otherwise
     """
-
+    
     return tf_to_yn((billed_to_date_amt > authorized_amount))
 
 # is the award balance greater than 25% of the total award?
@@ -228,19 +227,21 @@ def ri13(sponsor_entity_type, project_type):
 def ri14():
     return NA_FLAG
 
-# PLACEHOLDER
-def ri15(number_outstanding_payments):
+
+# PLACEHOLDER - fixed price terms?
+def ri15():
+    
+    return NA_FLAG
+
+# PLACEHOLDER - paid in full?
+def ri16(number_outstanding_payments):
     
     return tf_to_yn(
-        number_outstanding_payments > 0
+        number_outstanding_payments < 1
     )
 
 # PLACEHOLDER
 # All deliverables submitted?; not possible with RAD data alone
-def ri16():
-    
-    return NA_FLAG
-
 def ri17():
     
     return NA_FLAG
