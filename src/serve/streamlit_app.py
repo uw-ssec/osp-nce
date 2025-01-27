@@ -32,23 +32,23 @@ class StreamLitApp:
             "Review Notes" : "Enter any additional notes here."
         }
         self.fields_map = {
-            "rl1" : "SFI Current?",
-            "rl2": "Remaining Balance $$",
-            "rl3" : "Is the award in deficit?",
-            "rl4" : "Is the balance greater than 25% of the total award?",
-            "rl5" : "Award lines listed or 'extend all' indicated?",
-            "rl6" : "Temporary Request?",
-            "rl7" : "New Cost Share?",
-            "rl8" : "Human Subjects?",
-            "rl9" : "Animal Use?",
-            "rl10" : "Prior Approval required?",
-            "rl11" : "Has the project previously been extended? Is this an NIH 2nd+ extension?",
-            "rl12" : "Is the request to extend within Sponsor’s required timeframe?",
-            "rl13" : "Is this a federal contract?",
-            "rl14" : "Fixed Price terms?",
-            "rl15" : "Paid in full?",
-            "rl16" : "All deliverables submitted?",
-            "rl17" : "FAR clause 52.222-54 (e-verify)?",
+            "ri1" : "SFI Current?",
+            "ri2": "Remaining Balance $$",
+            "ri3" : "Is the award in deficit?",
+            "ri4" : "Is the balance greater than 25% of the total award?",
+            "ri5" : "Award lines listed or 'extend all' indicated?",
+            "ri6" : "Temporary Request?",
+            "ri7" : "New Cost Share?",
+            "ri8" : "Human Subjects?",
+            "ri9" : "Animal Use?",
+            "ri10" : "Prior Approval required?",
+            "ri11" : "Has the project previously been extended? Is this an NIH 2nd+ extension?",
+            "ri12" : "Is the request to extend within Sponsor’s required timeframe?",
+            "ri13" : "Is this a federal contract?",
+            "ri14" : "Fixed Price terms?",
+            "ri15" : "Paid in full?",
+            "ri16" : "All deliverables submitted?",
+            "ri17" : "FAR clause 52.222-54 (e-verify)?",
             "notes" : "Review Notes"
         }
         self.fields_map_pdf = {
@@ -102,91 +102,21 @@ class StreamLitApp:
         with col2:
             mod_id = st.text_input("MOD/Worktag ID:", value="", key="mod_id")
         st.button("Proceed", key = "ProceedButton", on_click=self.run_app)
-
-    def autofill_fields(self, mod_id, pi_name, df):
-        autofilled_values = {}
-
-        # Filter the DataFrame for the relevant rows
-        filtered_df = df[(df['displayIdentifier'] == mod_id) & (df['ModificationCategory'] == "Schedule changes")]
-        # st.write(filtered_df)
-
-        if filtered_df.empty:
-            st.error(f"No data found for MODID {mod_id}")
-            return {key: "No data available" for key in self.fields}
-
-        # Extract scalar values for calculations
-        authorized_amount = filtered_df['AuthorizedAmount'].iloc[0]
-        billed_to_date_amount = filtered_df['BilledToDateAmount'].iloc[0]
-
-        for key in self.fields:
-            if key == "SFI Current?":
-                autofilled_values[key] = "TBD" 
-            elif key == "Remaining Balance $$":
-                autofilled_values[key] = authorized_amount - billed_to_date_amount
-            elif key == "Is the award in deficit?":
-                if (authorized_amount - billed_to_date_amount) < 0:
-                    autofilled_values[key] = "Y"
-                else:
-                    autofilled_values[key] = "N"
-            elif key == "Is the balance greater than 25% of the total award?":
-                if (authorized_amount - billed_to_date_amount) / authorized_amount > 0.25:
-                    autofilled_values[key] = "Y"
-                else:
-                    autofilled_values[key] = "N"
-            elif key == "Award lines listed or 'extend all' indicated?":
-                autofilled_values[key] = "TBD"
-            elif key == "Temporary Request?":
-                autofilled_values[key] = "TBD"
-            elif key == "New Cost Share?":
-                autofilled_values[key] = "TBD"
-            elif key == "Human Subjects?":
-                if filtered_df['isHumanSubjects'].iloc[0] == "Y":
-                    autofilled_values[key] = 'Y'
-                else:
-                    autofilled_values[key] = 'N'
-            elif key == "Animal Use?":
-                if filtered_df['isAnimalUse'].iloc[0] == "Y":
-                    autofilled_values[key] = 'Y'
-                else:
-                    autofilled_values[key] = 'N'
-            elif key == "Prior Approval required?":
-                autofilled_values[key] = "TBD"
-            elif key == "Has the project previously been extended?":
-                autofilled_values[key] = "TBD"
-            elif key == "Is this an NIH 2nd+ extension?":
-                autofilled_values[key] = "TBD"
-            elif key == "Is the request to extend within Sponsor’s required timeframe?":
-                autofilled_values[key] = "TBD"
-            elif key == "Is this a federal contract?":
-                autofilled_values[key] = "TBD"
-            elif key == "Fixed Price terms?":
-                autofilled_values[key] = "TBD"
-            elif key == "Paid in full?":
-                autofilled_values[key] = "TBD"
-            elif key == "All deliverables submitted?":
-                autofilled_values[key] = "TBD"
-            elif key == "FAR clause 52.222-54 (e-verify)?":
-                autofilled_values[key] = "TBD"
-
-        return autofilled_values
     
     def instantiate_fillable_page(self, pi_name, mod_id, data):
         if pi_name and mod_id:  # Ensure both fields are filled before processing
-            st.success("Processing autofill values...")
-            autofilled_values = self.autofill_fields(mod_id, pi_name, data)
-            
+            st.success("Processing autofill values...")            
             # Step 3: Display autofilled fields
             st.subheader("Edit the fields below")
-            for field, helper_text in self.fields.items():
+            for rl_field, field in self.fields_map.items():
                 col1, col2, col3 = st.columns([1, 2, 1])
                 with col1:
                     st.markdown(f"**{field}**")
+                    helper_text = self.fields[field]
                     if helper_text:
                         st.markdown(f"<small>{helper_text}</small>", unsafe_allow_html=True)
                 with col2:
-                    st.text_input(label="", value=autofilled_values[field], key=field, placeholder="Enter value")
-                with col3:
-                    st.button("Upload documents", key=f"upload_{field}")
+                    st.text_input(label="", value=data[rl_field], key=field, placeholder="Enter value")
             
             # Add a dummy button at the end for downloading as PDF
             st.markdown("---")
