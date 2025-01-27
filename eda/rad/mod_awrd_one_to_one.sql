@@ -7,7 +7,7 @@ WITH
             displayIdentifier,
             COUNT(DISTINCT WorkdayAwardNumber) AS awrd_cnt
         FROM
-            RADDB.UW_rpt.vMODs
+            RADDB.UW.vAwardMOdificationRequest
         GROUP BY
             displayIdentifier
     )

@@ -4,6 +4,8 @@ channels:
 dependencies:
   - python
   - sqlalchemy
+  - openpyxl
+  - msal
   - pymssql
   - python-dotenv
   - pandas
