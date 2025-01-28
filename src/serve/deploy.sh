@@ -18,10 +18,10 @@ install_python_linux() {
     sudo apt-get install -y python3 python3-pip
 }
 
-# Function to provide instructions for installing Python on Windows
+# Function to install Python on Windows
 install_python_windows() {
-    echo "Please install Python manually from https://www.python.org/downloads/windows/"
-    exit 1
+    echo "Installing Python on Windows..."
+    curl https://www.python.org/ftp/python/3.13.0/python-3.13.0.exe --output "%TMP%\python-3.13.0.exe" && "%TMP%\python-3.13.0.exe" /quiet InstallAllUsers=1 PrependPath=1
 }
 
 # Function to kill processes using a specific port
@@ -85,7 +85,7 @@ kill_process_on_port 8000
 
 # Start the FastAPI application
 echo "Starting FastAPI application..."
-poetry run uvicorn wsgi:app &
+poetry run uvicorn wsgi:app --host 0.0.0.0 --port 8000 &
 UVICORN_PID=$!
 
 # Wait for FastAPI to start
