@@ -1,10 +1,8 @@
 import sys
 import uvicorn
 import os
-sys.path.append("../")
 
 from libs.sql_connector import SQLConnector
-from serve.streamlit_app import StreamLitApp
 import streamlit as st
 from typing import Dict
 from datetime import datetime
