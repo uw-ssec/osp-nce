@@ -18,7 +18,6 @@ db_server = os.getenv("DB_SERVER")
 db_name = os.getenv("DB_DATABASE")
 
 sql_connector = SQLConnector(user=db_user, password=db_password, server=db_server, database=db_name)
-streamlit_app = StreamLitApp()
 
 app = FastAPI()
 

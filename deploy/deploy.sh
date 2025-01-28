@@ -110,6 +110,9 @@ DB_SERVER=$DB_SERVER
 DB_DATABASE=$DB_DATABASE
 EOF
 
+# Activate conda environment
+source activate your_conda_env_name
+
 # Install Poetry if not already installed
 if ! command -v poetry &> /dev/null
 then
@@ -128,6 +131,7 @@ export PYTHONPATH="$SRC_DIR:$PYTHONPATH"
 cd "$PROJECT_ROOT"
 
 # Install dependencies without development dependencies
+echo "Installing dependencies..."
 poetry install --no-root
 
 # Kill any process using port 8000
