@@ -1,10 +1,8 @@
 import sys
 import uvicorn
 import os
-sys.path.append("../")
 
 from libs.sql_connector import SQLConnector
-from serve.streamlit_app import StreamLitApp
 import streamlit as st
 from typing import Dict
 from datetime import datetime
@@ -20,7 +18,6 @@ db_server = os.getenv("DB_SERVER")
 db_name = os.getenv("DB_DATABASE")
 
 sql_connector = SQLConnector(user=db_user, password=db_password, server=db_server, database=db_name)
-streamlit_app = StreamLitApp()
 
 app = FastAPI()
 
