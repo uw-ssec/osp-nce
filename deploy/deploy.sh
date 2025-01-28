@@ -110,8 +110,6 @@ DB_SERVER=$DB_SERVER
 DB_DATABASE=$DB_DATABASE
 EOF
 
-# Activate conda environment
-source activate your_conda_env_name
 
 # Install Poetry if not already installed
 if ! command -v poetry &> /dev/null
