@@ -1,8 +1,9 @@
 import sys
 import uvicorn
+import os
 sys.path.append("../")
 
-from libs.sql_connecter import SQLConnecter
+from libs.sql_connector import SQLConnector
 from serve.streamlit_app import StreamLitApp
 import streamlit as st
 from typing import Dict
@@ -12,7 +13,13 @@ from fastapi import FastAPI
 
 logger = logging.getLogger(__name__)
 
-sql_connecter = SQLConnecter()
+# Get database credentials from environment variables
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_server = os.getenv("DB_SERVER")
+db_name = os.getenv("DB_DATABASE")
+
+sql_connector = SQLConnector(user=db_user, password=db_password, server=db_server, database=db_name)
 streamlit_app = StreamLitApp()
 
 app = FastAPI()
@@ -27,17 +34,16 @@ async def ping() -> Dict[str, str]:
     return {"message": message}
 
 @app.get("/run/")
-async def run(pi_name:str, mod_id:str) -> Dict[str, str]:
+async def run(pi_name: str, mod_id: str) -> Dict[str, str]:
     try:
         query_file = "../../sql/test_query.sql"
         with open(query_file, "r") as f:
             query = f.read()
-        df = sql_connecter.query_database(query)
-        return {"Data" : df.to_json(),
-                "Status" : 200}
+        df = sql_connector.query_database(query)
+        return {"Data": df.to_json(), "Status": 200}
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("serve.wsgi:app", host="0.0.0.0", port=8000)
