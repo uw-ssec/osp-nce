@@ -119,7 +119,7 @@ WITH
             awrd.SponsorFECDMEntityName,
             awrd.SponsorFECDMEntityType,
             awrd.PrimeSponsorFECDMEntityName,
-            awrd.PrimeSPonsorFECDMEntityType,
+            awrd.PrimeSponsorFECDMEntityType,
             awrd.BillToSponsorFECDMEntityName,
             awrd.BillToSponsorFECDMEntityType,
             awrd.AwardTotalAmount,
