@@ -70,8 +70,8 @@ class SharepointConnector:
 
         # Extract the access token from the result
         if "access_token" not in result:
-            error_detail = (
-                result.get("error_description") or result.get("error")
+            error_detail = result.get("error_description") or result.get(
+                "error"
             )
             raise ValueError(f"Error acquiring token: {error_detail}")
         else:
@@ -191,7 +191,9 @@ class SharepointConnector:
         # Download the file to the specified local path
         self.download_excel(site_id, drive_id, item_id, local_file_path)
 
-    def read_excel_from_short_link(self, short_link):
+    def read_excel_from_short_link(
+        self, short_link, header=None, skiprows=0, names=None
+    ):
         """
         Read an Excel file from a SharePoint short link into a pandas DataFrame.
 
@@ -201,6 +203,14 @@ class SharepointConnector:
 
         Args:
             short_link (str): The SharePoint short link to decode.
+            header (int, list of int, default 0): Row (0-indexed) to use for the 
+                column labels of the parsed DataFrame.
+            skiprows (int, list-like, default 0): Line numbers to skip 
+                (0-indexed) or number of lines to skip (int) at the start of the 
+                file.
+            names (array-like, optional): List of column names to use. If file 
+                contains no header row, then you should explicitly pass 
+                header=None.
 
         Returns:
             pandas.DataFrame: The data read from the remote Excel file.
@@ -228,8 +238,81 @@ class SharepointConnector:
         # Download the file and convert its content into a DataFrame
         response = requests.get(download_url, headers=headers)
         if response.status_code == 200:
-            return pd.read_excel(BytesIO(response.content))
+            return pd.read_excel(
+                BytesIO(response.content),
+                header=header,
+                skiprows=skiprows,
+                names=names,
+            )
         else:
             raise RuntimeError(
                 f"Error reading file ({response.status_code}): {response.text}"
             )
+
+    def read_extension_forms_from_short_link(self, short_link):
+        """
+        Read the extension forms from the OSP Sharepoint site.
+
+        This is a convenience method for pre-parsing a particular excel files
+        (extension forms).
+
+        Args:
+            short_link (str): The SharePoint short link to the extension form
+                submissions.
+
+        Returns:
+            pandas.DataFrame: Parsed extension forms, up to date. 
+        """
+        column_names = [
+            "ID",
+            "StartTime",
+            "CompletionTime",
+            "Email",
+            "Name",
+            "Question",
+            "YourName",
+            "YourName2",
+            "YourEmail",
+            "PIName",
+            "UWAwardNumber",
+            "IsRemainingBalanceMoreThan25Percent",
+            "ExplanationForRemainingBalance",
+            "RequestedEndDate",
+            "isTemporaryExtensionRequest",
+            "IsAwardInDeficit",
+            "DeficitExplanation",
+            "AlternativeNonSponsoredDepartmentalWorktag",
+            "allDeliverablesSubmitted",
+            "isNIH2PlusExtension",
+            "WillPIMaintainMeasurableEffort",
+            "ContinuingHumanSubjectsResearch",
+            "CurrentIRBProtocolNumber",
+            "IRBLocation",
+            "IRBExpirationDate",
+            "CurrentIRBProtocolNumber2",
+            "IRBExpirationDate2",
+            "IRBLocation2",
+            "CurrentIRBProtocolNumber3",
+            "AnimalResearchDone",
+            "CurrentIACUCProtocolNumber",
+            "IACUCExpirationDate",
+            "CurrentIACUCProtocolNumber2",
+            "IACUCExpirationDate2",
+            "CurrentIACUCProtocolNumber3",
+            "IACUCExpirationDate3",
+            "CurrentIRBProtocolNumber4",
+            "IRBLocation3",
+            "IRBExpirationDate3",
+            "isNewCostShare",
+            "AdditionalComments",
+            "AdditionalIRBProtocols",
+            "AdditionalIRBProtocolDetails",
+            "AdditionalIACUCProtocolDetails",
+        ]
+        df_forms_raw = self.read_excel_from_short_link(
+            short_link,
+            header=None,
+            skiprows=2,
+            names=column_names,
+        )
+        return df_forms_raw

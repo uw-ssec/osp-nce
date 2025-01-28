@@ -25,14 +25,15 @@ def main():
         )
 
         # Test downloading the file
-        print("Downloading file from short link...")
-        connector.download_excel_from_short_link(SHORT_LINK, LOCAL_FILE_PATH)
-        print(f"File downloaded successfully to: {LOCAL_FILE_PATH}")
+        # print("Downloading file from short link...")
+        # connector.download_excel_from_short_link(SHORT_LINK, LOCAL_FILE_PATH)
+        # print(f"File downloaded successfully to: {LOCAL_FILE_PATH}")
 
         # Test reading the file into a DataFrame
         print("Reading the downloaded file into a DataFrame...")
-        df = connector.read_excel_from_short_link(SHORT_LINK)
+        df = connector.read_extension_forms_from_short_link(SHORT_LINK)
         print("First few rows of the DataFrame:")
+        import pdb; pdb.set_trace()
         print(df.head())
 
     except Exception as e:
