@@ -40,7 +40,7 @@ async def ping() -> Dict[str, str]:
 async def prompt_azure_mfa(sharepoint_connector=sharepoint_connector) -> Dict[str, str]:
     try:
         auth_message = sharepoint_connector.prompt_user()
-        return {"auth_message": auth_message, "Status": 200}
+        return {"auth_message": auth_message, "Status": '200'}
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
         return {"error": str(e)}
