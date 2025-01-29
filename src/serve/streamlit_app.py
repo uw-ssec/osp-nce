@@ -72,6 +72,18 @@ class StreamLitApp:
             "notes" : "ReviewNotes"
         }
 
+        self.page = st.session_state.get("page", "auth")
+
+    def change_page(self, page, mod_id=None, data=None):
+        if page != "query":
+            st.session_state["page"] = page
+            st.rerun()
+        else:
+            st.session_state["page"] = page
+            st.session_state["mod_id"] = mod_id
+            st.session_state["data"] = data
+            st.rerun()
+
     def get_mfa_message(self):
         # Retrieve the MFA message from the API
         response = requests.get("http://localhost:8000/prompt_azure_mfa/")
@@ -86,17 +98,19 @@ class StreamLitApp:
         # Retrieve the access token from the API
         response = requests.get("http://localhost:8000/acquire_access_token/")
         if response.status_code == 200:
-            self.instantiate_landing_page()
+            self.change_page("landing")
         else:
             st.error("Failed to acquire access token.")
 
     def instantiate_auth_page(self):
-        st.title("Authenticate for Sharepoint")
-        st.button("Authenticate With 2FA", key="authenticate", on_click=self.get_mfa_message)
-        st.text(st.session_state.get("auth_message", ""))
-        
-        if st.session_state.get("show_proceed", False):
-            st.button("Proceed", key="proceed", on_click=self.get_user_auth)
+        placeholder = st.empty()
+        with placeholder.container():
+            st.title("Authenticate for Sharepoint")
+            st.button("Authenticate With 2FA", key="authenticate", on_click=self.get_mfa_message)
+            st.text(st.session_state.get("auth_message", ""))
+            
+            if st.session_state.get("show_proceed", False):
+                st.button("Proceed", key="ProceedButtonAuth", on_click=self.get_user_auth)
         
         st.text("Please only click proceed upon successful multifactor authentication.")
 
@@ -112,19 +126,17 @@ class StreamLitApp:
             # Step 1: Collect initial inputs
             st.subheader("Identifying Information")
             col1, col2 = st.columns(2)
-            with col1:
-                pi_name = st.text_input("PI Name:", value="", key="pi_name")
             with col2:
                 mod_id = st.text_input("MOD/Worktag ID:", value="", key="mod_id")
-            st.button("Proceed", key="ProceedButton", on_click=self.run_app)
+            st.button("Proceed", key="ProceedButtonLanding", on_click=self.run_app)
     
-    def instantiate_query_page(self, pi_name, mod_id, data):
+    def instantiate_query_page(self, mod_id, data):
         # Create a placeholder
         placeholder = st.empty()
 
         # Use the placeholder to display content
         with placeholder.container():
-            if pi_name and mod_id:  # Ensure both fields are filled before processing
+            if mod_id:  # Ensure both fields are filled before processing
                 st.success("Processing your request...")            
                 # Step 3: Display autofilled fields
                 st.subheader("Edit the fields below")
@@ -139,15 +151,13 @@ class StreamLitApp:
                 st.button("Update Values", key="UpdateButton", on_click=self.update_values)
                 st.button("Download PDF", key="DownloadPDFButton", on_click=self.download_prefilled_pdf)
 
-    def get_pi_name_mod_id(self):
-        # Retrieve PI Name and MOD/Worktag ID from user input
-        pi_name = st.text_input("PI Name")
-        mod_id = st.text_input("MOD/Worktag ID")
-        return pi_name, mod_id
+    def get_mod_id(self):
+        # Retrieve MOD/Worktag ID from session state
+        return st.session_state.get("mod_id", "")
 
     def update_values(self):
         # Update the values in the database with the new values
-        pi_name, mod_id = self.get_pi_name_mod_id()
+        pi_name, mod_id = self.get_mod_id()
         updated_values = {}
         for key in self.fields_map:
             updated_values[key] = st.session_state[self.fields_map[key]]
@@ -175,21 +185,32 @@ class StreamLitApp:
 
     def run_app(self):
         # Run the Streamlit app after validation
-        pi_name, mod_id = self.get_pi_name_mod_id()
-        response = requests.get(f"http://localhost:8000/run", params={"pi_name": pi_name, "mod_id": mod_id})
-        if response.status_code == 200:
-            try:
-                data = pd.read_json(response.json()['Data'])
-                self.instantiate_query_page(pi_name, mod_id, data)
-            except Exception as e:
-                st.error(f"Error processing data: {str(e)}")
-                self.instantiate_error_page()
-        else:
-            st.error(f"Error from server: {response.json().get('detail', 'Unknown error')}")
+        mod_id = self.get_mod_id()
+        try:
+            response = requests.get(f"http://localhost:8000/run", params={"mod_id": mod_id})
+            if response.status_code == 200:
+                try:
+                    data = pd.read_json(response.json()['Data'])
+                    st.session_state["mod_id"] = mod_id
+                    st.session_state["data"] = data
+                    self.change_page("query")
+                except Exception as e:
+                    st.error(f"Error processing data: {str(e)}")
+            else:
+                st.error(f"Error from server: {response.json().get('detail', 'Unknown error')}")
+        except:
+            st.error("Error connecting to server.")
 
     def run(self):
-        # Initialize the landing page
-        self.instantiate_auth_page()
+        # Run the Streamlit app
+        if self.page == "auth":
+            self.instantiate_auth_page()
+        elif self.page == "landing":
+            self.instantiate_landing_page()
+        elif self.page == "query":
+            mod_id = st.session_state.get("mod_id")
+            data = st.session_state.get("data")
+            self.instantiate_query_page(mod_id, data)
 
 if __name__ == "__main__":
     # Instantiate and run the Streamlit app
