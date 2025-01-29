@@ -47,24 +47,6 @@ kill_process_on_port() {
     fi
 }
 
-# Function to check Python version
-check_python_version() {
-    PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
-    REQUIRED_VERSION="3.13.0"
-    if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]]; then
-        echo "Python version is less than 3.13. Upgrading..."
-        case "$OSTYPE" in
-            darwin*)  install_python_mac ;;
-            linux*)   install_python_linux ;;
-            msys*)    install_python_windows ;;
-            cygwin*)  install_python_windows ;;
-            *)        echo "Unsupported OS: $OSTYPE" && exit 1 ;;
-        esac
-    else
-        echo "Python version is $PYTHON_VERSION, which is greater than or equal to 3.13."
-    fi
-}
-
 # Check if Python is installed
 if ! command -v python3 &> /dev/null
 then
@@ -76,46 +58,55 @@ then
         cygwin*)  install_python_windows ;;
         *)        echo "Unsupported OS: $OSTYPE" && exit 1 ;;
     esac
-else
-    check_python_version
 fi
 
 # Check if environment variables are set, if not prompt the user
-if [ -z "$DB_USER" ]; then
-    read -p "Enter your database username: " DB_USER
-    export DB_USER="$DB_USER"
+if [ -z "$RAD_USER" ]; then
+    read -p "Enter your database username: " RAD_USER
+    export RAD_USER="$RAD_USER"
 fi
 
-if [ -z "$DB_PASSWORD" ]; then
-    read -sp "Enter your database password: " DB_PASSWORD
+if [ -z "$RAD_PASSWORD" ]; then
+    read -sp "Enter your database password: " RAD_PASSWORD
     echo
-    export DB_PASSWORD="$DB_PASSWORD"
+    export RAD_PASSWORD="$RAD_PASSWORD"
 fi
 
-if [ -z "$DB_SERVER" ]; then
-    read -p "Enter your database server: " DB_SERVER
-    export DB_SERVER="$DB_SERVER"
+if [ -z "$RAD_SERVER" ]; then
+    read -p "Enter your database server: " RAD_SERVER
+    export RAD_SERVER="$RAD_SERVER"
 fi
 
-if [ -z "$DB_DATABASE" ]; then
-    read -p "Enter your database name: " DB_DATABASE
-    export DB_DATABASE="$DB_DATABASE"
+if [ -z "$RAD_DATABASE" ]; then
+    read -p "Enter your database name: " RAD_DATABASE
+    export RAD_DATABASE="$RAD_DATABASE"
+fi
+
+if [ -z "$AZURE_CLIENT_ID" ]; then
+    read -p "Enter your Azure client ID: " AZURE_CLIENT_ID
+    export AZURE_CLIENT_ID="$AZURE_CLIENT_ID"
+fi
+
+if [ -z "$AZURE_TENANT_ID" ]; then
+    read -p "Enter your Azure tenant ID: " AZURE_TENANT_ID
+    export AZURE_TENANT_ID="$AZURE_TENANT_ID"
 fi
 
 # Save environment variables to .env file
 cat <<EOF > "$SCRIPT_DIR/.env"
-DB_USER=$DB_USER
-DB_PASSWORD=$DB_PASSWORD
-DB_SERVER=$DB_SERVER
-DB_DATABASE=$DB_DATABASE
+RAD_USER=$RAD_USER
+RAD_PASSWORD=$RAD_PASSWORD
+RAD_SERVER=$RAD_SERVER
+RAD_DATABASE=$RAD_DATABASE
+AZURE_CLIENT_ID=$AZURE_CLIENT_ID
+AZURE_TENANT_ID=$AZURE_TENANT_ID
 EOF
-
 
 # Install Poetry if not already installed
 if ! command -v poetry &> /dev/null
 then
     echo "Poetry could not be found, installing..."
-    curl -sSL https://install.python-poetry.org | python3 -
+    curl -sSL https://install.python-poetry.org | python3 - > /dev/null 2>&1
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
@@ -130,14 +121,20 @@ cd "$PROJECT_ROOT"
 
 # Install dependencies without development dependencies
 echo "Installing dependencies..."
-poetry install --no-root
+if ! poetry install --no-root > /dev/null 2>&1; then
+    echo "Failed to install dependencies."
+    exit 1
+fi
 
 # Kill any process using port 8000
 kill_process_on_port 8000
 
 # Start the FastAPI application
 echo "Starting FastAPI application..."
-poetry run uvicorn src.serve.wsgi:app --host 0.0.0.0 --port 8000 &
+if ! poetry run uvicorn src.serve.wsgi:app --host 0.0.0.0 --port 8000 > /dev/null 2>&1 & then
+    echo "Failed to start FastAPI application."
+    exit 1
+fi
 UVICORN_PID=$!
 
 # Wait for FastAPI to start
@@ -155,7 +152,11 @@ kill_process_on_port 8501
 
 # Start the Streamlit application
 echo "Starting Streamlit application..."
-poetry run streamlit run "$SERVE_DIR/streamlit_app.py" &
+if ! poetry run streamlit run "$SERVE_DIR/streamlit_app.py" > /dev/null 2>&1 & then
+    echo "Failed to start Streamlit application."
+    kill "$UVICORN_PID"
+    exit 1
+fi
 STREAMLIT_PID=$!
 
 # Wait for Streamlit to start
