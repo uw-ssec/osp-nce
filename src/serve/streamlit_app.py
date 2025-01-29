@@ -180,7 +180,7 @@ class StreamLitApp:
 
     def run(self):
         # Initialize the landing page
-        self.instantiate_landing_page()
+        self.instantiate_auth_page()
 
 if __name__ == "__main__":
     # Instantiate and run the Streamlit app

@@ -22,6 +22,12 @@ install_python_mac() {
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
     brew install python
+    brew install FreeTDS 
+    export LDFLAGS="-L/opt/homebrew/lib -L/opt/homebrew/opt/openssl/lib"
+    export CFLAGS="-I/opt/homebrew/include"
+    export CPPFLAGS="-I/opt/homebrew/opt/openssl@3/include"
+    pip uninstall pymssql -y
+    pip install pymssql==2.2.8 --no-binary :all:
 }
 
 # Function to install Python on Linux
@@ -47,6 +53,24 @@ kill_process_on_port() {
     fi
 }
 
+# Function to check Python version
+check_python_version() {
+    PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
+    REQUIRED_VERSION="3.13.0"
+    if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]]; then
+        echo "Python version is less than 3.13. Upgrading..."
+        case "$OSTYPE" in
+            darwin*)  install_python_mac ;;
+            linux*)   install_python_linux ;;
+            msys*)    install_python_windows ;;
+            cygwin*)  install_python_windows ;;
+            *)        echo "Unsupported OS: $OSTYPE" && exit 1 ;;
+        esac
+    else
+        echo "Python version is $PYTHON_VERSION, which is greater than or equal to 3.13."
+    fi
+}
+
 # Check if Python is installed
 if ! command -v python3 &> /dev/null
 then
@@ -58,6 +82,8 @@ then
         cygwin*)  install_python_windows ;;
         *)        echo "Unsupported OS: $OSTYPE" && exit 1 ;;
     esac
+else
+    check_python_version
 fi
 
 # Check if environment variables are set, if not prompt the user
@@ -102,11 +128,12 @@ AZURE_CLIENT_ID=$AZURE_CLIENT_ID
 AZURE_TENANT_ID=$AZURE_TENANT_ID
 EOF
 
+
 # Install Poetry if not already installed
 if ! command -v poetry &> /dev/null
 then
     echo "Poetry could not be found, installing..."
-    curl -sSL https://install.python-poetry.org | python3 - > /dev/null 2>&1
+    curl -sSL https://install.python-poetry.org | python3 -
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
@@ -121,20 +148,14 @@ cd "$PROJECT_ROOT"
 
 # Install dependencies without development dependencies
 echo "Installing dependencies..."
-if ! poetry install --no-root > /dev/null 2>&1; then
-    echo "Failed to install dependencies."
-    exit 1
-fi
+poetry install --no-root
 
 # Kill any process using port 8000
 kill_process_on_port 8000
 
 # Start the FastAPI application
 echo "Starting FastAPI application..."
-if ! poetry run uvicorn src.serve.wsgi:app --host 0.0.0.0 --port 8000 > /dev/null 2>&1 & then
-    echo "Failed to start FastAPI application."
-    exit 1
-fi
+poetry run uvicorn src.serve.wsgi:app --host 0.0.0.0 --port 8000 &
 UVICORN_PID=$!
 
 # Wait for FastAPI to start
@@ -152,11 +173,7 @@ kill_process_on_port 8501
 
 # Start the Streamlit application
 echo "Starting Streamlit application..."
-if ! poetry run streamlit run "$SERVE_DIR/streamlit_app.py" > /dev/null 2>&1 & then
-    echo "Failed to start Streamlit application."
-    kill "$UVICORN_PID"
-    exit 1
-fi
+poetry run streamlit run "$SERVE_DIR/streamlit_app.py" &
 STREAMLIT_PID=$!
 
 # Wait for Streamlit to start

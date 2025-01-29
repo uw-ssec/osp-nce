@@ -3,7 +3,7 @@ import uvicorn
 import os
 
 from libs.sql_connector import SQLConnector
-from libs.sharepoint_connector import SharePointConnector
+from libs.sharepoint_connector import SharepointConnector
 import streamlit as st
 from typing import Dict
 from datetime import datetime
@@ -22,7 +22,7 @@ tenant_id = os.getenv("AZURE_TENANT_ID")
 
 
 sql_connector = SQLConnector(user=db_user, password=db_password, server=db_server, database=db_name)
-sharepoint_connector = SharePointConnector(client_id=client_id, tenant_id=tenant_id)
+sharepoint_connector = SharepointConnector(client_id=client_id, tenant_id=tenant_id)
 
 
 app = FastAPI()
