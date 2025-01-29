@@ -186,17 +186,20 @@ class StreamLitApp:
     def run_app(self):
         # Run the Streamlit app after validation
         mod_id = self.get_mod_id()
-        response = requests.get(f"http://localhost:8000/run", params={"mod_id": mod_id})
-        if response.status_code == 200:
-            try:
-                data = pd.read_json(response.json()['Data'])
-                st.session_state["mod_id"] = mod_id
-                st.session_state["data"] = data
-                self.change_page("query")
-            except Exception as e:
-                st.error(f"Error processing data: {str(e)}")
-        else:
-            st.error(f"Error from server: {response.json().get('detail', 'Unknown error')}")
+        try:
+            response = requests.get(f"http://localhost:8000/run", params={"mod_id": mod_id})
+            if response.status_code == 200:
+                try:
+                    data = pd.read_json(response.json()['Data'])
+                    st.session_state["mod_id"] = mod_id
+                    st.session_state["data"] = data
+                    self.change_page("query")
+                except Exception as e:
+                    st.error(f"Error processing data: {str(e)}")
+            else:
+                st.error(f"Error from server: {response.json().get('detail', 'Unknown error')}")
+        except:
+            st.error("Error connecting to server.")
 
     def run(self):
         # Run the Streamlit app
