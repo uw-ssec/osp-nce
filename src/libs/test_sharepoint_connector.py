@@ -5,9 +5,9 @@ from sharepoint_connector import SharepointConnector
 
 # Replace with your actual values for testing
 load_dotenv(override=False)
-CLIENT_ID = os.getenv("CLIENT_ID")
-TENANT_ID = os.getenv("TENANT_ID")
-SHORT_LINK = "https://uwnetid.sharepoint.com/:x:/s/og_osp_managers/EQaeSnjtfdFGjXYAk_sa0w0B79v0wjCaesSKdTe96lTvfg?e=5QgFxk" 
+AZURE_CLIENT_ID = os.getenv("CLIENT_ID")
+AZURE_TENANT_ID = os.getenv("TENANT_ID")
+SHORT_LINK = os.getenv("EXTENSION_FORMS_SHORT_LINK")
 LOCAL_FILE_PATH = "test_file.xlsx"
 
 def main():
@@ -20,8 +20,8 @@ def main():
     try:
         # Initialize the connector
         connector = SharepointConnector(
-            client_id=CLIENT_ID,
-            tenant_id=TENANT_ID,
+            client_id=AZURE_CLIENT_ID,
+            tenant_id=AZURE_TENANT_ID,
         )
 
         # Test downloading the file
