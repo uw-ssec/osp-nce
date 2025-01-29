@@ -54,41 +54,23 @@ class StreamLitApp:
         self.fields_map_pdf = {
             "ri1" : "SFI",
             "ri2" : "RemBal",
-            "ri3" : "Deficit?", 
-            "ri4" : "Greater than 25%?",
-            "ri5" : "Award lines",
+            "ri3" : "Deficit",
+            "ri4" : "Bal25",
+            "ri5" : "AwardLines",
             "ri6" : "TempReq",
-            "ri7" : "CostShare",
-            "ri8" : "HumSub",
+            "ri7" : "NewCS",
+            "ri8" : "HumanSub",
             "ri9" : "AnimalUse",
             "ri10" : "PriorApp",
-            "ri11" : "PrevExt?",
-            "ri12" : "ExtendInTime?",
-            "ri13" : "FedContract?",
-            "ri14" : 'Fixed Price terms',
-            "ri15" : "Paid in full",
-            "ri16" : "All deliverables  submitted",
-            "ri17" : "FAR clause 5222254",
-            "notes" : "Review Notes",
+            "ri11" : "PrevExt",
+            "ri12" : "ExtTime",
+            "ri13" : "FedContract",
+            "ri14" : "FixedPrice",
+            "ri15" : "PaidFull",
+            "ri16" : "Deliverables",
+            "ri17" : "EVerify",
+            "notes" : "ReviewNotes"
         }
-
-    def get_pi_name_mod_id(self):
-        # Retrieve PI Name and MOD ID from Streamlit session state
-        pi_name = st.session_state.get("pi_name", "")
-        mod_id = st.session_state.get("mod_id", "")
-        return pi_name, mod_id
-    
-    def validate_input(self):
-        # Validate the input fields when the "Proceed" button is clicked
-        pi_name, mod_id = self.get_pi_name_mod_id()
-        if not pi_name.strip():
-            st.error("PI Name is required.")
-        elif not mod_id.strip():
-            st.error("MOD ID is required.")
-        else:
-            st.success("Inputs are valid. Proceeding...")
-            # Display the PI Name and MOD ID
-            self.run_app()
 
     def get_mfa_message(self):
         # Retrieve the MFA message from the API
@@ -119,43 +101,49 @@ class StreamLitApp:
         st.text("Please only click proceed upon successful multifactor authentication.")
 
     def instantiate_landing_page(self):
-        st.empty()
-        # Display the title of the Streamlit app
-        st.title("Editable Form - Extension Review Matrix")
+        # Create a placeholder
+        placeholder = st.empty()
 
-        # Step 1: Collect initial inputs
-        st.subheader("Identifying Information")
-        col1, col2 = st.columns(2)
-        with col1:
-            pi_name = st.text_input("PI Name:", value="", key="pi_name")
-        with col2:
-            mod_id = st.text_input("MOD/Worktag ID:", value="", key="mod_id")
-        st.button("Proceed", key = "ProceedButton", on_click=self.run_app)
+        # Use the placeholder to display content
+        with placeholder.container():
+            # Display the title of the Streamlit app
+            st.title("Editable Form - Extension Review Matrix")
+
+            # Step 1: Collect initial inputs
+            st.subheader("Identifying Information")
+            col1, col2 = st.columns(2)
+            with col1:
+                pi_name = st.text_input("PI Name:", value="", key="pi_name")
+            with col2:
+                mod_id = st.text_input("MOD/Worktag ID:", value="", key="mod_id")
+            st.button("Proceed", key="ProceedButton", on_click=self.run_app)
     
     def instantiate_query_page(self, pi_name, mod_id, data):
-        st.empty()
-        if pi_name and mod_id:  # Ensure both fields are filled before processing
-            st.success("Processing autofill values...")            
-            # Step 3: Display autofilled fields
-            st.subheader("Edit the fields below")
-            for rl_field, field in self.fields_map.items():
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col1:
-                    st.markdown(f"**{field}**")
-                    helper_text = self.fields[field]
-                    if helper_text:
-                        st.markdown(f"<small>{helper_text}</small>", unsafe_allow_html=True)
-                with col2:
-                    st.text_input(label="", value=data[rl_field], key=field, placeholder="Enter value")
-            
-            # Add a dummy button at the end for downloading as PDF
-            st.markdown("---")
-            st.button("Update Extension Review Matrix", key="UpdateMatrix", on_click = self.update_values)
-            st.button("Download as PDF", key="DownloadPDF", on_click = self.download_prefilled_pdf)
+        # Create a placeholder
+        placeholder = st.empty()
 
-    def instantiate_error_page(self):
-        # Display an error message if the service encounters an error
-        st.error("The service has encountered an error. Please try again later.")
+        # Use the placeholder to display content
+        with placeholder.container():
+            if pi_name and mod_id:  # Ensure both fields are filled before processing
+                st.success("Processing your request...")            
+                # Step 3: Display autofilled fields
+                st.subheader("Edit the fields below")
+                for rl_field, field in self.fields_map.items():
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col1:
+                        st.markdown(f"**{field}**")
+                        helper_text = self.fields[field]
+                        if helper_text:
+                            st.text(helper_text)
+                        st.text_input("", value=data.get(rl_field, ""), key=self.fields_map[field])
+                st.button("Update Values", key="UpdateButton", on_click=self.update_values)
+                st.button("Download PDF", key="DownloadPDFButton", on_click=self.download_prefilled_pdf)
+
+    def get_pi_name_mod_id(self):
+        # Retrieve PI Name and MOD/Worktag ID from user input
+        pi_name = st.text_input("PI Name")
+        mod_id = st.text_input("MOD/Worktag ID")
+        return pi_name, mod_id
 
     def update_values(self):
         # Update the values in the database with the new values
@@ -179,19 +167,25 @@ class StreamLitApp:
                 if value:
                     writer.update_page_form_field_values(page, update_dict)
         writer.write("assets/extension_review_matrix_filled.pdf")
-        with open(f"Extension_Review_Matix_{pi_name}_{mod_id}_{datetime.now().strftime('%Y-%m-%d')}.pdf", "wb") as f:
+        filename = f"Extension_Review_Matix_{pi_name}_{mod_id}_{datetime.now().strftime('%Y-%m-%d')}.pdf"
+        with open(filename, "wb") as f:
             writer.write(f)
-
+        st.text(f"Your PDF has been downloaded with filename {filename}.")
+        st.button("Click here to continue with", key="ContinueButton", on_click=self.instantiate_landing_page)
 
     def run_app(self):
         # Run the Streamlit app after validation
         pi_name, mod_id = self.get_pi_name_mod_id()
-        response = requests.get(f"http://localhost:8000/run", params={"pi_name": pi_name, "mod_id": mod_id}).json()
-        try:
-            data = pd.read_json(response['Data'])
-            self.instantiate_fillable_page(pi_name, mod_id, data)
-        except:
-            self.instantiate_error_page()
+        response = requests.get(f"http://localhost:8000/run", params={"pi_name": pi_name, "mod_id": mod_id})
+        if response.status_code == 200:
+            try:
+                data = pd.read_json(response.json()['Data'])
+                self.instantiate_query_page(pi_name, mod_id, data)
+            except Exception as e:
+                st.error(f"Error processing data: {str(e)}")
+                self.instantiate_error_page()
+        else:
+            st.error(f"Error from server: {response.json().get('detail', 'Unknown error')}")
 
     def run(self):
         # Initialize the landing page
@@ -201,4 +195,3 @@ if __name__ == "__main__":
     # Instantiate and run the Streamlit app
     streamlit_app = StreamLitApp()
     streamlit_app.run()
-
