@@ -37,9 +37,11 @@ class SharepointConnector:
         self.tenant_id = tenant_id
         self.scopes = scopes
         self.authority = f"https://login.microsoftonline.com/{self.tenant_id}"
-        self.access_token = None
+        self._access_token = None
+        self._flow = None
+        self._app = None
 
-    def acquire_token(self):
+    def prompt_user(self):
         """
         Use Azure AD device-flow to acquire an access token.
 
@@ -63,20 +65,22 @@ class SharepointConnector:
             raise ValueError(
                 "Failed to create device flow. Check Azure AD app registration."
             )
+        self._flow = flow
+        self._app = app
+        return flow['message']
 
+    def acquire_token(self):
         # Prompt the user to go to the link to enter an access code
-        print(flow["message"])
-        result = app.acquire_token_by_device_flow(flow)
-
+        result = self._app.acquire_token_by_device_flow(self._flow)
         # Extract the access token from the result
         if "access_token" not in result:
             error_detail = result.get("error_description") or result.get(
                 "error"
             )
-            raise ValueError(f"Error acquiring token: {error_detail}")
+            return (f"Error acquiring token: {error_detail}")
         else:
-            self.access_token = result["access_token"]
-            print("Access token acquired successfully.")
+            self._access_token = self.result["access_token"]
+            return ("Access token acquired successfully.")
 
     def get_item_info_from_short_link(self, short_link):
         """
@@ -92,7 +96,7 @@ class SharepointConnector:
         Raises:
             RuntimeError: If an error from the endpoint or no token exists.
         """
-        if not self.access_token:
+        if not self._access_token:
             raise RuntimeError(
                 "Access token not found. Call acquire_token() first."
             )
@@ -105,7 +109,7 @@ class SharepointConnector:
         shares_endpoint = (
             f"https://graph.microsoft.com/v1.0/shares/u!{encoded_str}/driveItem"
         )
-        headers = {"Authorization": f"Bearer {self.access_token}"}
+        headers = {"Authorization": f"Bearer {self._access_token}"}
 
         # Make the request to decode the short link
         response = requests.get(shares_endpoint, headers=headers)

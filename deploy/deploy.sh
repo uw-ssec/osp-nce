@@ -22,6 +22,12 @@ install_python_mac() {
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
     brew install python
+    brew install FreeTDS 
+    export LDFLAGS="-L/opt/homebrew/lib -L/opt/homebrew/opt/openssl/lib"
+    export CFLAGS="-I/opt/homebrew/include"
+    export CPPFLAGS="-I/opt/homebrew/opt/openssl@3/include"
+    pip uninstall pymssql -y
+    pip install pymssql==2.2.8 --no-binary :all:
 }
 
 # Function to install Python on Linux
@@ -81,33 +87,45 @@ else
 fi
 
 # Check if environment variables are set, if not prompt the user
-if [ -z "$DB_USER" ]; then
-    read -p "Enter your database username: " DB_USER
-    export DB_USER="$DB_USER"
+if [ -z "$RAD_USER" ]; then
+    read -p "Enter your database username: " RAD_USER
+    export RAD_USER="$RAD_USER"
 fi
 
-if [ -z "$DB_PASSWORD" ]; then
-    read -sp "Enter your database password: " DB_PASSWORD
+if [ -z "$RAD_PASSWORD" ]; then
+    read -sp "Enter your database password: " RAD_PASSWORD
     echo
-    export DB_PASSWORD="$DB_PASSWORD"
+    export RAD_PASSWORD="$RAD_PASSWORD"
 fi
 
-if [ -z "$DB_SERVER" ]; then
-    read -p "Enter your database server: " DB_SERVER
-    export DB_SERVER="$DB_SERVER"
+if [ -z "$RAD_SERVER" ]; then
+    read -p "Enter your database server: " RAD_SERVER
+    export RAD_SERVER="$RAD_SERVER"
 fi
 
-if [ -z "$DB_DATABASE" ]; then
-    read -p "Enter your database name: " DB_DATABASE
-    export DB_DATABASE="$DB_DATABASE"
+if [ -z "$RAD_DATABASE" ]; then
+    read -p "Enter your database name: " RAD_DATABASE
+    export RAD_DATABASE="$RAD_DATABASE"
+fi
+
+if [ -z "$AZURE_CLIENT_ID" ]; then
+    read -p "Enter your Azure client ID: " AZURE_CLIENT_ID
+    export AZURE_CLIENT_ID="$AZURE_CLIENT_ID"
+fi
+
+if [ -z "$AZURE_TENANT_ID" ]; then
+    read -p "Enter your Azure tenant ID: " AZURE_TENANT_ID
+    export AZURE_TENANT_ID="$AZURE_TENANT_ID"
 fi
 
 # Save environment variables to .env file
 cat <<EOF > "$SCRIPT_DIR/.env"
-DB_USER=$DB_USER
-DB_PASSWORD=$DB_PASSWORD
-DB_SERVER=$DB_SERVER
-DB_DATABASE=$DB_DATABASE
+RAD_USER=$RAD_USER
+RAD_PASSWORD=$RAD_PASSWORD
+RAD_SERVER=$RAD_SERVER
+RAD_DATABASE=$RAD_DATABASE
+AZURE_CLIENT_ID=$AZURE_CLIENT_ID
+AZURE_TENANT_ID=$AZURE_TENANT_ID
 EOF
 
 
