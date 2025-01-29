@@ -14,10 +14,25 @@ This is the main development folder.
 - The user interface is a web application built with Streamlit, a Python package that simplifies the creation of interactive web UIs.
 - While the frontend is ultimately rendered in HTML and JavaScript, we do not develop it directly in these languages.
 
-```mermaid
-graph TD;
-    A["Data Layer:<br>University Databases"] -->|SQL Queries<br>& SQLAlchemy| B["Application Layer:<br>Business Logic"];
-    B -->|Processes Data<br>& Generates ERM Answers| C["Presentation Layer:<br>Streamlit Web UI"];
 ```
-
-
++---------------------------+
+|  Presentation Layer       |
+|  (Streamlit Web UI)       |
++---------------------------+
+            │  
+            ▼  
++---------------------------+
+|  Application Layer        |
+|  (Business Logic)         |
+|  - Processes data         |
+|  - Generates ERM answers |
++---------------------------+
+            │  
+            ▼  
++---------------------------+
+|  Data Layer               |
+|  (University Databases)   |
+|  - SQL Queries            |
+|  - SQLAlchemy for ORM     |
++---------------------------+
+```
