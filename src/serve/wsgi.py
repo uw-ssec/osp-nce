@@ -55,7 +55,7 @@ async def acquire_access_token(sharepoint_connector=sharepoint_connector):
         return {"error": str(e)}
 
 @app.get("/run/")
-async def run(pi_name: str, mod_id: str, 
+async def run(mod_id: str, 
               sql_connector=sql_connector,
               sharepoint_connector=sharepoint_connector) -> Dict[str, str]:
     try:
