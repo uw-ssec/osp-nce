@@ -90,20 +90,27 @@ class StreamLitApp:
             # Display the PI Name and MOD ID
             self.run_app()
 
-    def get_access_token(self):
+    def get_mfa_message(self):
         # Retrieve the access token from the API
-        response = requests.get("http://localhost:8000/get_azure_access_token/")
+        response = requests.get("http://localhost:8000//prompt_azure_mfa/")
         if response.status_code == 200:
-            st.success("Access token retrieved successfully.")
-            self.instantiate_landing_page()
+            st.text(response.json()["access_token"])
         else:
-            st.error("Failed to retrieve access token.")
-
+            st.error("Failed to acquire MFA message from Azure.")
     
+    def get_user_auth(self):
+        # Retrieve the access token from the API
+        response = requests.get("http://localhost:8000//acquire_access_token/")
+        if response.status_code == 200:
+            self.run_app()
+        else:
+            st.error("Failed to acquire access token.")
+
     def instantiate_auth_page(self):
         st.title("Authenticate for Sharepoint")
-        st.button("Authenticate", key="authenticate", on_click=self.get_access_token)
-        
+        st.button("Authenticate With 2FA", key="authenticate", on_click=self.get_mfa_message)
+        st.button("Proceed", key="proceed", on_click=self.get_user_auth)
+        st.text("Please only click proceed upon successful multifactor authentication.")
 
     def instantiate_landing_page(self):
         # Display the title of the Streamlit app
