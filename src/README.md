@@ -40,8 +40,12 @@ This is the main development folder.
 
 ```mermaid
 graph TD;
-    A[Presentation Layer: Streamlit Web UI] --> B[Application Layer: Business Logic];
-    B --> C[Data Layer: University Databases];
-    C -->|SQL Queries & SQLAlchemy| B;
+    A[Data Layer: University Databases] -->|SQL Queries & SQLAlchemy| B[Application Layer: Business Logic];
+    B -->|Processes Data & Generates ERM Answers| C[Presentation Layer: Streamlit Web UI];
+
+    style A text-wrap:wrap;
+    style B text-wrap:wrap;
+    style C text-wrap:wrap;
 ```
+
 
