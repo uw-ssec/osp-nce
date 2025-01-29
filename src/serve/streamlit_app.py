@@ -119,6 +119,7 @@ class StreamLitApp:
         st.text("Please only click proceed upon successful multifactor authentication.")
 
     def instantiate_landing_page(self):
+        st.empty()
         # Display the title of the Streamlit app
         st.title("Editable Form - Extension Review Matrix")
 
@@ -132,6 +133,7 @@ class StreamLitApp:
         st.button("Proceed", key = "ProceedButton", on_click=self.run_app)
     
     def instantiate_query_page(self, pi_name, mod_id, data):
+        st.empty()
         if pi_name and mod_id:  # Ensure both fields are filled before processing
             st.success("Processing autofill values...")            
             # Step 3: Display autofilled fields
