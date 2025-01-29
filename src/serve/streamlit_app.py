@@ -77,11 +77,12 @@ class StreamLitApp:
     def change_page(self, page, mod_id=None, data=None):
         if page != "query":
             st.session_state["page"] = page
+            st.rerun()
         else:
             st.session_state["page"] = page
             st.session_state["mod_id"] = mod_id
             st.session_state["data"] = data
-        st.rerun()
+            st.rerun()
 
     def get_mfa_message(self):
         # Retrieve the MFA message from the API
@@ -109,7 +110,7 @@ class StreamLitApp:
             st.text(st.session_state.get("auth_message", ""))
             
             if st.session_state.get("show_proceed", False):
-                st.button("Proceed", key="proceed", on_click=self.get_user_auth)
+                st.button("Proceed", key="ProceedButtonAuth", on_click=self.get_user_auth)
         
         st.text("Please only click proceed upon successful multifactor authentication.")
 
@@ -125,11 +126,9 @@ class StreamLitApp:
             # Step 1: Collect initial inputs
             st.subheader("Identifying Information")
             col1, col2 = st.columns(2)
-            with col1:
-                pi_name = st.text_input("PI Name:", value="", key="pi_name")
             with col2:
                 mod_id = st.text_input("MOD/Worktag ID:", value="", key="mod_id")
-            st.button("Proceed", key="ProceedButton", on_click=self.change_page(""))
+            st.button("Proceed", key="ProceedButtonLanding", on_click=self.run_app)
     
     def instantiate_query_page(self, mod_id, data):
         # Create a placeholder
@@ -153,9 +152,8 @@ class StreamLitApp:
                 st.button("Download PDF", key="DownloadPDFButton", on_click=self.download_prefilled_pdf)
 
     def get_mod_id(self):
-        # Retrieve PI Name and MOD/Worktag ID from user input
-        mod_id = st.text_input("MOD ID")
-        return mod_id
+        # Retrieve MOD/Worktag ID from session state
+        return st.session_state.get("mod_id", "")
 
     def update_values(self):
         # Update the values in the database with the new values

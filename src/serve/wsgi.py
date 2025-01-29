@@ -1,14 +1,13 @@
 import sys
 import uvicorn
 import os
+import logging
 
 from libs.sql_connector import SQLConnector
 from libs.sharepoint_connector import SharepointConnector
-import streamlit as st
 from typing import Dict
 from datetime import datetime
-import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +19,30 @@ db_name = os.getenv("RAD_DATABASE")
 client_id = os.getenv("AZURE_CLIENT_ID")
 tenant_id = os.getenv("AZURE_TENANT_ID")
 
-
-sql_connector = SQLConnector(user=db_user, password=db_password, server=db_server, database=db_name)
-sharepoint_connector = SharepointConnector(client_id=client_id, tenant_id=tenant_id)
-
-
+# Create FastAPI app
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize connectors at startup."""
+    app.state.sql_connector = SQLConnector(user=db_user, password=db_password, server=db_server, database=db_name)
+    app.state.sharepoint_connector = SharepointConnector(client_id=client_id, tenant_id=tenant_id)
+    logger.info("Initialized SQLConnector and SharepointConnector.")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup resources at shutdown."""
+    if hasattr(app.state, "sql_connector"):
+        app.state.sql_connector.close()  # Ensure proper cleanup
+    logger.info("Cleaned up resources.")
+
+# Dependency to retrieve the singleton instance of SQLConnector
+def get_sql_connector():
+    return app.state.sql_connector
+
+# Dependency to retrieve the singleton instance of SharepointConnector
+def get_sharepoint_connector():
+    return app.state.sharepoint_connector
 
 @app.get("/ping/")
 async def ping() -> Dict[str, str]:
@@ -37,7 +54,7 @@ async def ping() -> Dict[str, str]:
     return {"message": message}
 
 @app.get("/prompt_azure_mfa/")
-async def prompt_azure_mfa(sharepoint_connector=sharepoint_connector) -> Dict[str, str]:
+async def prompt_azure_mfa(sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector)) -> Dict[str, str]:
     try:
         auth_message = sharepoint_connector.prompt_user()
         return {"auth_message": auth_message, "Status": '200'}
@@ -46,7 +63,7 @@ async def prompt_azure_mfa(sharepoint_connector=sharepoint_connector) -> Dict[st
         return {"error": str(e)}
     
 @app.get("/acquire_access_token/")
-async def acquire_access_token(sharepoint_connector=sharepoint_connector):
+async def acquire_access_token(sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector)) -> Dict[str, str]:
     try:
         access_token = sharepoint_connector.acquire_token()
         return {"Status": '200'}
@@ -56,8 +73,8 @@ async def acquire_access_token(sharepoint_connector=sharepoint_connector):
 
 @app.get("/run/")
 async def run(mod_id: str, 
-              sql_connector=sql_connector,
-              sharepoint_connector=sharepoint_connector) -> Dict[str, str]:
+              sql_connector: SQLConnector = Depends(get_sql_connector),
+              sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector)) -> Dict[str, str]:
     try:
         query_file = "../../sql/test_query.sql"
         with open(query_file, "r") as f:
