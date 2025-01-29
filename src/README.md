@@ -16,15 +16,8 @@ This is the main development folder.
 
 ```mermaid
 graph TD;
-    A["Data Layer:  
-    University Databases"] -->|SQL Queries  
-    & SQLAlchemy| B["Application Layer:  
-    Business Logic"];
-    B -->|Processes Data  
-    & Generates ERM Answers| C["Presentation Layer:  
-    Streamlit Web UI"];
-
-
+    A["Data Layer:<br>University Databases"] -->|SQL Queries<br>& SQLAlchemy| B["Application Layer:<br>Business Logic"];
+    B -->|Processes Data<br>& Generates ERM Answers| C["Presentation Layer:<br>Streamlit Web UI"];
 ```
 
 
