@@ -39,7 +39,7 @@ async def ping() -> Dict[str, str]:
 @app.get("/prompt_azure_mfa/")
 async def prompt_azure_mfa(sharepoint_connector=sharepoint_connector) -> Dict[str, str]:
     try:
-        auth_message = sharepoint_connector.acquire_token()
+        auth_message = sharepoint_connector.prompt_user()
         return {"auth_message": auth_message, "Status": 200}
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
@@ -48,7 +48,7 @@ async def prompt_azure_mfa(sharepoint_connector=sharepoint_connector) -> Dict[st
 @app.get("/acquire_access_token/")
 async def acquire_access_token(sharepoint_connector=sharepoint_connector):
     try:
-        access_token = sharepoint_connector.acquire_access_token()
+        access_token = sharepoint_connector.acquire_token()
         return {"Status": 200}
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")

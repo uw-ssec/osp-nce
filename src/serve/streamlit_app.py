@@ -91,25 +91,31 @@ class StreamLitApp:
             self.run_app()
 
     def get_mfa_message(self):
-        # Retrieve the access token from the API
-        response = requests.get("http://localhost:8000//prompt_azure_mfa/")
+        # Retrieve the MFA message from the API
+        response = requests.get("http://localhost:8000/prompt_azure_mfa/")
         if response.status_code == 200:
-            st.text(response.json()["access_token"])
+            self.auth_message = response.json().get("auth_message", "")
+            st.session_state["auth_message"] = self.auth_message
+            st.session_state["show_proceed"] = True
         else:
-            st.error("Failed to acquire MFA message from Azure.")
-    
+            st.error("Failed to retrieve MFA message.")
+
     def get_user_auth(self):
         # Retrieve the access token from the API
-        response = requests.get("http://localhost:8000//acquire_access_token/")
+        response = requests.get("http://localhost:8000/acquire_access_token/")
         if response.status_code == 200:
-            self.run_app()
+            self.instantiate_query_page()
         else:
             st.error("Failed to acquire access token.")
 
     def instantiate_auth_page(self):
         st.title("Authenticate for Sharepoint")
         st.button("Authenticate With 2FA", key="authenticate", on_click=self.get_mfa_message)
-        st.button("Proceed", key="proceed", on_click=self.get_user_auth)
+        st.text(st.session_state.get("auth_message", ""))
+        
+        if st.session_state.get("show_proceed", False):
+            st.button("Proceed", key="proceed", on_click=self.get_user_auth)
+        
         st.text("Please only click proceed upon successful multifactor authentication.")
 
     def instantiate_landing_page(self):
@@ -193,3 +199,4 @@ if __name__ == "__main__":
     # Instantiate and run the Streamlit app
     streamlit_app = StreamLitApp()
     streamlit_app.run()
+
