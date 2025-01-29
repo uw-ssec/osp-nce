@@ -22,6 +22,12 @@ install_python_mac() {
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
     brew install python
+    brew install FreeTDS 
+    export LDFLAGS="-L/opt/homebrew/lib -L/opt/homebrew/opt/openssl/lib"
+    export CFLAGS="-I/opt/homebrew/include"
+    export CPPFLAGS="-I/opt/homebrew/opt/openssl@3/include"
+    pip uninstall pymssql -y
+    pip install pymssql==2.2.8 --no-binary :all:
 }
 
 # Function to install Python on Linux
