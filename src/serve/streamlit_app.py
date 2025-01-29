@@ -90,6 +90,21 @@ class StreamLitApp:
             # Display the PI Name and MOD ID
             self.run_app()
 
+    def get_access_token(self):
+        # Retrieve the access token from the API
+        response = requests.get("http://localhost:8000/get_azure_access_token/")
+        if response.status_code == 200:
+            st.success("Access token retrieved successfully.")
+            self.instantiate_landing_page()
+        else:
+            st.error("Failed to retrieve access token.")
+
+    
+    def instantiate_auth_page(self):
+        st.title("Authenticate for Sharepoint")
+        st.button("Authenticate", key="authenticate", on_click=self.get_access_token)
+        
+
     def instantiate_landing_page(self):
         # Display the title of the Streamlit app
         st.title("Editable Form - Extension Review Matrix")
@@ -103,7 +118,7 @@ class StreamLitApp:
             mod_id = st.text_input("MOD/Worktag ID:", value="", key="mod_id")
         st.button("Proceed", key = "ProceedButton", on_click=self.run_app)
     
-    def instantiate_fillable_page(self, pi_name, mod_id, data):
+    def instantiate_query_page(self, pi_name, mod_id, data):
         if pi_name and mod_id:  # Ensure both fields are filled before processing
             st.success("Processing autofill values...")            
             # Step 3: Display autofilled fields
