@@ -94,7 +94,7 @@ class StreamLitApp:
         # Retrieve the MFA message from the API
         response = requests.get("http://localhost:8000/prompt_azure_mfa/")
         if response.status_code == 200:
-            self.auth_message = response.json().get("auth_message", "")
+            self.auth_message = response.json()["auth_message"]
             st.session_state["auth_message"] = self.auth_message
             st.session_state["show_proceed"] = True
         else:
@@ -104,7 +104,7 @@ class StreamLitApp:
         # Retrieve the access token from the API
         response = requests.get("http://localhost:8000/acquire_access_token/")
         if response.status_code == 200:
-            self.instantiate_query_page()
+            self.instantiate_landing_page()
         else:
             st.error("Failed to acquire access token.")
 

@@ -49,7 +49,7 @@ async def prompt_azure_mfa(sharepoint_connector=sharepoint_connector) -> Dict[st
 async def acquire_access_token(sharepoint_connector=sharepoint_connector):
     try:
         access_token = sharepoint_connector.acquire_token()
-        return {"Status": 200}
+        return {"Status": '200'}
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
         return {"error": str(e)}
@@ -64,7 +64,7 @@ async def run(pi_name: str, mod_id: str,
             query = f.read()
         df = sql_connector.query_database(query)
         
-        return {"Data": df.to_json(), "Status": 200}
+        return {"Data": df.to_json(), "Status": '200'}
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
         return {"error": str(e)}
