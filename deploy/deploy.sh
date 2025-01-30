@@ -89,6 +89,7 @@ fi
 # Check if environment variables are set, if not prompt the user
 if [ -z "$RAD_USER" ]; then
     read -p "Enter your database username: " RAD_USER
+    RAD_USER="netid\\$RAD_USER"
     export RAD_USER="$RAD_USER"
 fi
 
@@ -118,14 +119,20 @@ if [ -z "$AZURE_TENANT_ID" ]; then
     export AZURE_TENANT_ID="$AZURE_TENANT_ID"
 fi
 
+if [ -z "$EXTENSION_FORMS_SHORT_LINK" ]; then
+    read -p "Enter your extension forms short link: " EXTENSION_FORMS_SHORT_LINK
+    export EXTENSION_FORMS_SHORT_LINK="$EXTENSION_FORMS_SHORT_LINK"
+fi
+
 # Save environment variables to .env file
 cat <<EOF > "$SCRIPT_DIR/.env"
-RAD_USER=$RAD_USER
+RAD_USER="netid\\edouas"
 RAD_PASSWORD=$RAD_PASSWORD
 RAD_SERVER=$RAD_SERVER
 RAD_DATABASE=$RAD_DATABASE
 AZURE_CLIENT_ID=$AZURE_CLIENT_ID
 AZURE_TENANT_ID=$AZURE_TENANT_ID
+EXTENSION_FORMS_SHORT_LINK=$EXTENSION_FORMS_SHORT_LINK
 EOF
 
 
