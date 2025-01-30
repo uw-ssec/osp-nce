@@ -79,7 +79,7 @@ class SharepointConnector:
             )
             return (f"Error acquiring token: {error_detail}")
         else:
-            self._access_token = self.result["access_token"]
+            self._access_token = result["access_token"]
             return ("Access token acquired successfully.")
 
     def get_item_info_from_short_link(self, short_link):
@@ -141,7 +141,7 @@ class SharepointConnector:
             RuntimeError: If an error from the endpoint or no token exists.
         """
         # Ensure the access token is available
-        if not self.access_token:
+        if not self._access_token:
             raise RuntimeError(
                 "Access token not found. Call acquire_token() first."
             )
@@ -151,7 +151,7 @@ class SharepointConnector:
             f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives/"
             f"{drive_id}/items/{item_id}/content"
         )
-        headers = {"Authorization": f"Bearer {self.access_token}"}
+        headers = {"Authorization": f"Bearer {self._access_token}"}
 
         # Make the request to download the file
         response = requests.get(download_url, headers=headers)
@@ -183,7 +183,7 @@ class SharepointConnector:
             RuntimeError: If token acquisition or file download fails.
         """
         # Ensure access token is available
-        if not self.access_token:
+        if not self._access_token:
             self.acquire_token()
 
         # Decode the short link and extract item metadata
@@ -223,7 +223,7 @@ class SharepointConnector:
             RuntimeError: If token acquisition or file download fails.
         """
         # Ensure access token is available
-        if not self.access_token:
+        if not self._access_token:
             self.acquire_token()
 
         # Decode the short link and extract item metadata
@@ -237,7 +237,7 @@ class SharepointConnector:
             f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives/"
             f"{drive_id}/items/{item_id}/content"
         )
-        headers = {"Authorization": f"Bearer {self.access_token}"}
+        headers = {"Authorization": f"Bearer {self._access_token}"}
 
         # Download the file and convert its content into a DataFrame
         response = requests.get(download_url, headers=headers)
