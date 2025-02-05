@@ -42,6 +42,7 @@ class ERMAutofiller:
     def __init__(
         self,
         mod_id,
+        env,
         rad_connector: SQLConnector,
         sharepoint_connector: SharepointConnector,
     ):
@@ -61,12 +62,18 @@ class ERMAutofiller:
             self.RAD_QUERY_FILE, params={"mod_id": mod_id}
         )
 
-        # Pull extension forms from sharepoint and query for the relevant mod
-        df_sharepoint = (
-            sharepoint_connector.read_extension_forms_from_short_link(
-                self.SHORT_LINK
+        if env != "LOCAL":
+            # Pull extension forms from sharepoint and query for the relevant mod
+            df_sharepoint = (
+                sharepoint_connector.read_extension_forms_from_short_link(
+                    self.SHORT_LINK
+                )
             )
-        )
+        else:
+            df_sharepoint = (
+                sharepoint_connector.read_local_csv()
+            )
+            
         df_sharepoint_clean = self.process_extension_forms(
             df_sharepoint, df_rad["AwardNumber"]
         )

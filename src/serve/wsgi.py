@@ -20,6 +20,7 @@ db_server = os.getenv("RAD_SERVER")
 db_name = os.getenv("RAD_DATABASE")
 client_id = os.getenv("AZURE_CLIENT_ID")
 tenant_id = os.getenv("AZURE_TENANT_ID")
+env = os.getenv("ENV")
 
 # Create FastAPI app
 app = FastAPI()

@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 from PyPDF2 import PdfReader, PdfWriter
 from datetime import datetime
+import os
 
 class StreamLitApp:
     """
@@ -73,6 +74,7 @@ class StreamLitApp:
         }
 
         self.page = st.session_state.get("page", "auth")
+        self.env = os.getenv("ENV")
 
     def change_page(self, page, mod_id=None, data=None):
         if page != "query":
@@ -203,8 +205,11 @@ class StreamLitApp:
 
     def run(self):
         # Run the Streamlit app
-        if self.page == "auth":
+        if self.page == "auth" and self.env != "LOCAL":
             self.instantiate_auth_page()
+        if self.env == "LOCAL":
+            self.page = "landing"
+            self.instantiate_landing_page()
         elif self.page == "landing":
             self.instantiate_landing_page()
         elif self.page == "query":

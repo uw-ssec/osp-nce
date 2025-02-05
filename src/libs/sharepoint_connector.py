@@ -37,6 +37,7 @@ class SharepointConnector:
         self.tenant_id = tenant_id
         self.scopes = scopes
         self.authority = f"https://login.microsoftonline.com/{self.tenant_id}"
+        self.local_file_name = "../../assets/Extensions(Extension request responses).csv"
         self._access_token = None
         self._flow = None
         self._app = None
@@ -319,4 +320,8 @@ class SharepointConnector:
             skiprows=2,
             names=column_names,
         )
+        return df_forms_raw
+    
+    def read_local_csv(self):
+        df_forms_raw = pd.read_csv(self.local_file_name)
         return df_forms_raw

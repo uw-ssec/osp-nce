@@ -117,7 +117,10 @@ if [ -z "$AZURE_TENANT_ID" ]; then
     read -p "Enter your Azure tenant ID: " AZURE_TENANT_ID
     export AZURE_TENANT_ID="$AZURE_TENANT_ID"
 fi
-
+if [ -z "$ENV" ]; then
+    read -p "Enter the environment (e.g., development, production): " ENV
+    export ENV="$ENV"
+fi
 # Save environment variables to .env file
 cat <<EOF > "$SCRIPT_DIR/.env"
 RAD_USER=$RAD_USER
@@ -126,6 +129,7 @@ RAD_SERVER=$RAD_SERVER
 RAD_DATABASE=$RAD_DATABASE
 AZURE_CLIENT_ID=$AZURE_CLIENT_ID
 AZURE_TENANT_ID=$AZURE_TENANT_ID
+ENV=$ENV
 EOF
 
 
