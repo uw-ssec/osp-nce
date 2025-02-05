@@ -5,8 +5,8 @@ import logging
 import pandas as pd
 import numpy as np
 
-from sharepoint_connector import SharepointConnector
-from sql_connector import SQLConnector
+from libs.sharepoint_connector import SharepointConnector
+from libs.sql_connector import SQLConnector
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -30,10 +30,10 @@ class ERMAutofiller:
     SHORT_LINK = os.getenv("EXTENSION_FORMS_SHORT_LINK")
 
     # Path to RAD query
-    RAD_QUERY_FILE = "../../sql/nonprod_rad.sql"
+    RAD_QUERY_FILE = "./sql/nonprod_rad.sql"
 
     # Shared constants and flags
-    NA_FLAG = "AUTOMATED RESPONSE UNAVAILABLE"
+    NA_FLAG = "AUTOMATED RESPONSE CURRENTLY UNAVAILABLE"
     IN_YES = "Y"
     IN_NO = "N"
     OUT_YES = "YES"
@@ -75,12 +75,12 @@ class ERMAutofiller:
             )
             
         df_sharepoint_clean = self.process_extension_forms(
-            df_sharepoint, df_rad["AwardNumber"]
+            df_sharepoint, df_rad.loc[0, "AwardNumber"]
         )
 
         if df_rad.empty or df_sharepoint_clean.empty:
             raise ValueError(
-                f"No matches found for mod request {mod_id}. RAD result set empty: {df_rad.empty}. Extensions result set empty: {df_sharepoint_clean.emtpy}"
+                f"No matches found for mod request {mod_id}. RAD result set empty: {df_rad.empty}. Extensions result set empty: {df_sharepoint_clean.empty}"
             )
 
         # Assign isntance attributes
@@ -118,7 +118,7 @@ class ERMAutofiller:
 
         # Standardize the award number and return the filtered data
         df_filter["UWAwardNumber"] = award_number
-        return df_filter
+        return df_filter.reset_index()
 
     def autofill(self):
         """
@@ -131,6 +131,8 @@ class ERMAutofiller:
             dict: A dictionary of all 17 results, each of which is of the form
                 {"val": str, "notes": str}.
         """
+        self.answers["pi_name"] = {"val": self.df_rad.loc[0, "pi_name"], "notes": ""}
+        self.answers["mod_id"] = {"val": self.mod_id, "notes": ""}
         self.answers["ri1"] = self.ri1()
         self.answers["ri2"] = self.ri2()
         self.answers["ri3"] = self.ri3()
@@ -148,6 +150,7 @@ class ERMAutofiller:
         self.answers["ri15"] = self.ri15()
         self.answers["ri16"] = self.ri16()
         self.answers["ri17"] = self.ri17()
+        self.answers["review_notes"] = {"val": "", "notes": ""}
         return self.answers
 
     def to_json(self) -> str:
@@ -206,24 +209,8 @@ class ERMAutofiller:
             )
 
     # ------------------------------------------------------------------------
-    # Individual Business Logic Methods (RI1 - RI17)
+    # Individual Business Logic Methods (RI0 - RI17)
     # ------------------------------------------------------------------------
-    def ri0(self) -> dict:
-        """
-        Extract the PI Name from the RAD result set and package it for return.
-
-        Returns:
-            dict:
-                {
-                    "val": PI Name,
-                    "notes": ""
-                }
-        """
-        return {
-            "val": self.df_rad["pi_name"],
-            "notes": ""
-        }
-
     def ri1(self) -> dict:
         """
         Check that Significant Financial Interest disclosures are current.
@@ -258,8 +245,8 @@ class ERMAutofiller:
                 }
         """
         authorized_amount = self.df_rad.loc[0, "AuthorizedAmount"]
-        billed_to_date_amt = self.df_rad.loc[0, "BilledToDateAmount"]
-        balance = authorized_amount - billed_to_date_amt
+        billed_to_date_amount = self.df_rad.loc[0, "BilledToDateAmount"]
+        balance = authorized_amount - billed_to_date_amount
         return {
             "val": f"${balance:.2f}",
             "notes": "Calculated as Total Authorized minus Billed to Date.",
@@ -306,10 +293,10 @@ class ERMAutofiller:
         authorized_amount = self.df_rad.loc[0, "AuthorizedAmount"]
         billed_to_date_amt = self.df_rad.loc[0, "BilledToDateAmount"]
         balance = authorized_amount - billed_to_date_amt
-        balance_p = 100 * (float(balance) / authorized_amount)
+        balance_p = 100 * (balance / authorized_amount)
         return {
             "val": self._tf_to_yn((balance_p >= 25)),
-            "notes": f"Extension form indicated answer is: {self.df_sharepoint["IsRemainingBalanceMoreThan25Percent"]}. Computed balance was {balance_p}% of total, with explanation {self.df_sharepoint["ExplanationForRemainingBalance"]}",
+            "notes": f"Extension form indicated answer is: {self.df_sharepoint.loc[0, "IsRemainingBalanceMoreThan25Percent"]}. Computed balance was {balance_p}% of total, with explanation {self.df_sharepoint.loc[0, "ExplanationForRemainingBalance"]}",
         }
 
     def ri5(self) -> dict:
@@ -322,12 +309,12 @@ class ERMAutofiller:
             dict:
                 {
                     "val": NA_FLAG,
-                    "notes": "Specific award lines question not possible with current data."
+                    "notes": ""
                 }
         """
         return {
             "val": self.NA_FLAG,
-            "notes": "Specific award lines question not possible with current data.",
+            "notes": "",
         }
 
     def ri6(self) -> dict:
@@ -342,7 +329,7 @@ class ERMAutofiller:
                 }
         """
         return {
-            "val": self._tf_to_yn(self.df_sharepoint["isTemporaryExtensionRequest"] == "Yes"),
+            "val": self._tf_to_yn(self.df_sharepoint.loc[0, "isTemporaryExtensionRequest"] == "Yes"),
             "notes": "Answer pulled from Extension Form data",
         }
 
@@ -358,7 +345,7 @@ class ERMAutofiller:
                 }
         """
         return {
-            "val": self._tf_to_yn(self.df_sharepoint["isNewCostShare"] == "Yes"),
+            "val": self._tf_to_yn(self.df_sharepoint.loc[0, "isNewCostShare"] == "Yes"),
             "notes": "Answer pulled from Extension Form data",
         }
 
@@ -373,8 +360,8 @@ class ERMAutofiller:
                     "notes": "Based on EGC1 and Extension form data"
                 }
         """
-        is_human_subjects_rad = self._is_yes(self.df_rad.loc[0, "isHumanSubjects"])
-        is_human_subjects_ext = self._is_yes(self.df_sharepoint.loc[0, "ContinuingHumanSubjectsResearch"])
+        is_human_subjects_rad = self.df_rad.loc[0, "isHumanSubjects"]
+        is_human_subjects_ext = self.df_sharepoint.loc[0, "ContinuingHumanSubjectsResearch"]
         return {"val": self._tf_to_yn(is_human_subjects_ext == "Yes"), "notes": "Based on EGC1 and Extension form data"}
 
     def ri9(self) -> dict:
@@ -389,8 +376,8 @@ class ERMAutofiller:
                 }
         """
         is_animal_use_rad = self.df_rad.loc[0, "isAnimalUse"]
-        is_animal_use_ext = self.df_sharepoint.loc[0, ""]
-        return {"val": self._tf_to_yn(is_animal_use_ext == "Yes"), "notes": "Based on isAnimalUse column."}
+        is_animal_use_ext = self.df_sharepoint.loc[0, "AnimalResearchDone"]
+        return {"val": self._tf_to_yn(is_animal_use_ext == "Yes"), "notes": "Based on EGC1 and Extension form data"}
 
     def ri10(self) -> dict:
         """
@@ -407,7 +394,7 @@ class ERMAutofiller:
         """
         return {
             "val": self.NA_FLAG,
-            "notes": "Placeholder for prior approval logic.",
+            "notes": "",
         }
 
     def ri11(self) -> dict:
@@ -423,9 +410,10 @@ class ERMAutofiller:
                     "notes": "Not yet implemented."
                 }
         """
+        nih_second_plus = self.df_sharepoint.loc[0, "isNIH2PlusExtension"]
         return {
-            "val": self.NA_FLAG,
-            "notes": "Not yet implemented.",
+            "val": self._tf_to_yn(nih_second_plus == "Yes"),
+            "notes": "Answer pulled from Extension Form data.",
         }
 
     def ri12(self) -> dict:
@@ -440,12 +428,12 @@ class ERMAutofiller:
             dict:
                 {
                     "val": "YES" or "NO",
-                    "notes": "Placeholder for sponsor timeframe logic."
+                    "notes": ""
                 }
         """
         return {
             "val": self.NA_FLAG,
-            "notes": "Placeholder for sponsor timeframe logic.",
+            "notes": "",
         }
 
     def ri13(self) -> dict:
@@ -461,8 +449,8 @@ class ERMAutofiller:
                     "notes": "Use Prime Sponsor and Project Type to indicate."
                 }
         """
-        sponsor_entity_type = self.df.loc[0, "PrimeSponsorFECDMEntityType"]
-        project_type = self.df.loc[0, "projectType"]
+        sponsor_entity_type = self.df_rad.loc[0, "PrimeSponsorFECDMEntityType"]
+        project_type = self.df_rad.loc[0, "projectType"]
         is_federal_contract = (
             sponsor_entity_type == "Federal Government"
         ) and (project_type == "Contract")
@@ -477,18 +465,16 @@ class ERMAutofiller:
 
         Not possible with current data sources, so we return NA.
 
-
         Returns:
             dict:
                 {
                     "val": NA_FLAG,
                     "notes": "Not possible with current data sources."
-"
                 }
         """
         return {
             "val": self.NA_FLAG,
-            "notes": "Not possible with current data sources.",
+            "notes": "",
         }
 
     def ri15(self) -> dict:
@@ -506,7 +492,7 @@ class ERMAutofiller:
         """
         return {
             "val": self.NA_FLAG,
-            "notes": "Found in EDW, but not in RAD.",
+            "notes": "",
         }
 
     def ri16(self) -> dict:
@@ -545,7 +531,7 @@ class ERMAutofiller:
                     "notes": ""
                 }
         """
-        all_deliverables_met = self.df_sharepoint["allDeliverablesSubmitted"]
+        all_deliverables_met = self.df_sharepoint.loc[0, "allDeliverablesSubmitted"]
         return {
             "val": self._tf_to_yn(all_deliverables_met == "Yes"),
             "notes": "Pulled from Extensions Form",

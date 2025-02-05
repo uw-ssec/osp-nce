@@ -23,4 +23,4 @@ Throughout our codebase, we refer to items that appear on the extension review m
 |`ri15`|Fixed Price terms?|
 |`ri16`|Paid in full?|
 |`ri17`| All deliverables submitted?|
-|`notes`| Review Notes|
+|`review_notes`| Review Notes|
