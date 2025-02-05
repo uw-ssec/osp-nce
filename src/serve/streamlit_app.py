@@ -181,7 +181,7 @@ class StreamLitApp:
                 st.button(
                     "Update Values",
                     key="UpdateButton",
-                    on_click=self.update_values(data["pi_name"]),
+                    on_click=self.update_values,
                 )
                 st.button(
                     "Download PDF",
@@ -189,13 +189,13 @@ class StreamLitApp:
                     on_click=self.download_prefilled_pdf,
                 )
 
-    def get_mod_id(self):
+    def get_mod_id_pi_name(self):
         # Retrieve MOD/Worktag ID from session state
-        return st.session_state.get("mod_id", "")
+        return st.session_state.get("mod_id", ""), st.session_state.get("pi_name", "")
 
-    def update_values(self, pi_name):
+    def update_values(self):
         # Update the values in the database with the new values
-        mod_id = self.get_mod_id()
+        mod_id, pi_name = self.get_mod_id_pi_name()
         updated_values = {}
         for key in self.fields_map.keys():
             updated_values[key] = st.session_state.get(key, "")
@@ -231,9 +231,8 @@ class StreamLitApp:
             st.info("Starting the PDF creation process...")
 
             # Retrieve necessary data
-            mod_id = self.get_mod_id()
-            pi_name = st.session_state.get("pi_name", "")
-            updated_values = self.update_values(pi_name)
+            mod_id, pi_name = self.get_mod_id_pi_name()
+            updated_values = self.update_values()
 
             print(f"Retrieved mod_id: {mod_id}")
             print(f"PI name: {pi_name}")
