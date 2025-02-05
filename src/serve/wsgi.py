@@ -79,9 +79,7 @@ async def prompt_azure_mfa(
 
 @app.get("/acquire_access_token/")
 async def acquire_access_token(
-    sharepoint_connector: SharepointConnector = Depends(
-        get_sharepoint_connector
-    ),
+    sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector),
 ) -> Dict[str, str]:
     try:
         sharepoint_connector.acquire_token()
@@ -95,14 +93,10 @@ async def acquire_access_token(
 async def run(
     mod_id: str,
     sql_connector: SQLConnector = Depends(get_sql_connector),
-    sharepoint_connector: SharepointConnector = Depends(
-        get_sharepoint_connector
-    ),
+    sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector),
 ) -> Dict[str, str]:
     try:
-        erm_autofiller = ERMAutofiller(
-            mod_id, sql_connector, sharepoint_connector
-        )
+        erm_autofiller = ERMAutofiller(mod_id, sql_connector, sharepoint_connector)
         erm_autofiller.autofill()
         print(erm_autofiller.to_json())
         return {"Data": erm_autofiller.to_json(), "Status": "200"}

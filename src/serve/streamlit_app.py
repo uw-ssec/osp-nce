@@ -1,15 +1,17 @@
 import streamlit as st
 import json
-import pandas as pd 
+import pandas as pd
 import requests
 from PyPDF2 import PdfReader, PdfWriter
 from datetime import datetime
+
 
 class StreamLitApp:
     """
     StreamLitApp Class for the Streamlit Application, from landing page to autofilling fields.
     Functionality for user input validation, autofilling fields, and displaying the editable form.
     """
+
     def __init__(self):
         # Initialize the fields with their helper texts
         self.fields = {
@@ -30,52 +32,53 @@ class StreamLitApp:
             "Paid in full?": "No - Check Award Portal. If outstanding payments exist, deny extension until PI/campus resolve with Sponsor.",
             "All deliverables submitted?": "No - Extension requires Sponsor approval. Review fixed price terms.",
             "FAR clause 52.222-54 (e-verify)?": "Yes - Forward E-verify process to your campus contact & state in MOD comments that e-verify is required.",
-            "Review Notes" : "Enter any additional notes here."
+            "Review Notes": "Enter any additional notes here.",
         }
         self.fields_map = {
-            "ri1" : "SFI Current?",
+            "ri1": "SFI Current?",
             "ri2": "Remaining Balance $$",
-            "ri3" : "Is the award in deficit?",
-            "ri4" : "Is the balance greater than 25% of the total award?",
-            "ri5" : "Award lines listed or 'extend all' indicated?",
-            "ri6" : "Temporary Request?",
-            "ri7" : "New Cost Share?",
-            "ri8" : "Human Subjects?",
-            "ri9" : "Animal Use?",
-            "ri10" : "Prior Approval required?",
-            "ri11" : "Has the project previously been extended? Is this an NIH 2nd+ extension?",
-            "ri12" : "Is the request to extend within Sponsor’s required timeframe?",
-            "ri13" : "Is this a federal contract?",
-            "ri14" : "FAR clause 52.222-54 (e-verify)?",
-            "ri15" : "Fixed Price terms?",
-            "ri16" : "Paid in full?",
-            "ri17" : "All deliverables submitted?",
-            "review_notes" : "Review Notes"
+            "ri3": "Is the award in deficit?",
+            "ri4": "Is the balance greater than 25% of the total award?",
+            "ri5": "Award lines listed or 'extend all' indicated?",
+            "ri6": "Temporary Request?",
+            "ri7": "New Cost Share?",
+            "ri8": "Human Subjects?",
+            "ri9": "Animal Use?",
+            "ri10": "Prior Approval required?",
+            "ri11": "Has the project previously been extended? Is this an NIH 2nd+ extension?",
+            "ri12": "Is the request to extend within Sponsor’s required timeframe?",
+            "ri13": "Is this a federal contract?",
+            "ri14": "FAR clause 52.222-54 (e-verify)?",
+            "ri15": "Fixed Price terms?",
+            "ri16": "Paid in full?",
+            "ri17": "All deliverables submitted?",
+            "review_notes": "Review Notes",
         }
         self.fields_map_pdf = {
             "pi_name": "PI Name",
             "mod_id": "MOD/Worktag ID",
-            "ri1" : "SFI",
-            "ri2" : "RemBal",
-            "ri3" : "Deficit?",
-            "ri4" : "Greater than 25%?",
-            "ri5" : "Award lines",
-            "ri6" : "TempReq",
-            "ri7" : "CostShare",
-            "ri8" : "HumSub",
-            "ri9" : "AnimalUse",
-            "ri10" : "PriorApp",
-            "ri11" : "PrevExt?",
-            "ri12" : "ExtendInTime?",
-            "ri13" : "FedContract?",
-            "ri14" : "FAR clause 5222254",
-            "ri15" : "Fixed Price terms",
-            "ri16" : "Paid in full",
-            "ri17" : "All deliverables  submitted",
-            "review_notes" : "Review Notes"
+            "ri1": "SFI",
+            "ri2": "RemBal",
+            "ri3": "Deficit?",
+            "ri4": "Greater than 25%?",
+            "ri5": "Award lines",
+            "ri6": "TempReq",
+            "ri7": "CostShare",
+            "ri8": "HumSub",
+            "ri9": "AnimalUse",
+            "ri10": "PriorApp",
+            "ri11": "PrevExt?",
+            "ri12": "ExtendInTime?",
+            "ri13": "FedContract?",
+            "ri14": "FAR clause 5222254",
+            "ri15": "Fixed Price terms",
+            "ri16": "Paid in full",
+            "ri17": "All deliverables  submitted",
+            "review_notes": "Review Notes",
         }
 
         self.page = st.session_state.get("page", "auth")
+        st.set_page_config(layout="wide")
 
     def change_page(self, page, mod_id=None, data=None):
         if page != "query":
@@ -105,17 +108,28 @@ class StreamLitApp:
         else:
             st.error("Failed to acquire access token.")
 
+    # TODO---The reason for rerun and clear bugs is that we're never leaving the with block
+    #       In order to fix the screen writing issues we need to empty the placeholders.
+    #       In order to empty them, we need to pass them along. Maybe we can create main
+    #       container on startup. 
     def instantiate_auth_page(self):
         placeholder = st.empty()
         with placeholder.container():
             st.title("Authenticate for Sharepoint")
-            st.button("Authenticate With 2FA", key="authenticate", on_click=self.get_mfa_message)
-            st.text(st.session_state.get("auth_message", ""))
-            
+            st.button(
+                "Authenticate With 2FA",
+                key="authenticate",
+                on_click=self.get_mfa_message,
+            )
+            auth_message = st.session_state.get("auth_message", "")
+            if auth_message:
+                st.write(auth_message)
+                st.text("After authentication, click proceed.")
+
             if st.session_state.get("show_proceed", False):
-                st.button("Proceed", key="ProceedButtonAuth", on_click=self.get_user_auth)
-        
-        st.text("Please only click proceed upon successful multifactor authentication.")
+                st.button(
+                    "Proceed", key="ProceedButtonAuth", on_click=self.get_user_auth
+                )
 
     def instantiate_landing_page(self):
         # Create a placeholder
@@ -130,7 +144,7 @@ class StreamLitApp:
             st.subheader("Identifying Information")
             mod_id = st.text_input("MOD/Worktag ID:", value="", key="mod_id")
             st.button("Proceed", key="ProceedButtonLanding", on_click=self.run_app)
-    
+
     def instantiate_query_page(self, mod_id, data):
         # Create a placeholder
         placeholder = st.empty()
@@ -144,7 +158,7 @@ class StreamLitApp:
             with col2:
                 st.text_input("PI Name:", value=data["pi_name"]["val"], key="pi_name")
             if mod_id:  # Ensure both fields are filled before processing
-                st.success("Populating Extension Review Matrix Template...")            
+                st.success("Populating Extension Review Matrix Template...")
                 # Step 3: Display autofilled fields
                 st.subheader("Edit the fields below")
                 for ri_field, field in self.fields_map.items():
@@ -158,10 +172,22 @@ class StreamLitApp:
                         if helper_text:
                             st.text(helper_text)
                     with col4:
-                        st.text_input("Autofiller Notes", value=data[ri_field]["notes"], key=f"{ri_field}_notes")
+                        st.text_input(
+                            "Autofiller Notes",
+                            value=data[ri_field]["notes"],
+                            key=f"{ri_field}_notes",
+                        )
 
-                st.button("Update Values", key="UpdateButton", on_click=self.update_values(data["pi_name"]))
-                st.button("Download PDF", key="DownloadPDFButton", on_click=self.download_prefilled_pdf)
+                st.button(
+                    "Update Values",
+                    key="UpdateButton",
+                    on_click=self.update_values(data["pi_name"]),
+                )
+                st.button(
+                    "Download PDF",
+                    key="DownloadPDFButton",
+                    on_click=self.download_prefilled_pdf,
+                )
 
     def get_mod_id(self):
         # Retrieve MOD/Worktag ID from session state
@@ -171,8 +197,8 @@ class StreamLitApp:
         # Update the values in the database with the new values
         mod_id = self.get_mod_id()
         updated_values = {}
-        for key in self.fields_map:
-            updated_values[key] = st.session_state[key]
+        for key in self.fields_map.keys():
+            updated_values[key] = st.session_state.get(key, "")
         updated_values["pi_name"] = pi_name
         updated_values["mod_id"] = mod_id
         return updated_values
@@ -226,12 +252,16 @@ class StreamLitApp:
                 # Update and add each page within the same 'with' block
                 for idx, page in enumerate(pdf_template.pages):
                     print(f"Processing page {idx + 1} of {len(pdf_template.pages)}...")
-                    
+
                     for key, pdf_field_name in self.fields_map_pdf.items():
                         if pdf_field_name:
                             value_to_update = updated_values.get(key, "")
-                            print(f"Updating field '{pdf_field_name}' with value '{value_to_update}'")
-                            writer.update_page_form_field_values(page, {pdf_field_name: value_to_update})
+                            print(
+                                f"Updating field '{pdf_field_name}' with value '{value_to_update}'"
+                            )
+                            writer.update_page_form_field_values(
+                                page, {pdf_field_name: value_to_update}
+                            )
 
                     # After updating, add the page to the writer
                     writer.add_page(page)
@@ -258,14 +288,15 @@ class StreamLitApp:
         st.button(
             "Click here to continue",
             key="ContinueButton",
-            on_click=self.change_page("landing")
+            on_click=self.change_page("landing"),
         )
-
 
     def run_app(self):
         mod_id = self.get_mod_id()
         try:
-            response = requests.get("http://localhost:8000/run", params={"mod_id": mod_id})
+            response = requests.get(
+                "http://localhost:8000/run", params={"mod_id": mod_id}
+            )
             # print("Status code:", response.status_code)  # Debug
             # print("JSON response:", response.json())       # Debug
             if response.status_code == 200:
@@ -286,7 +317,9 @@ class StreamLitApp:
             else:
                 # If we do get a response but with an error code, show details
                 try:
-                    st.error(f"Error from server: {response.json().get('detail', 'Unknown error')}")
+                    st.error(
+                        f"Error from server: {response.json().get('detail', 'Unknown error')}"
+                    )
                 except:
                     st.error("Error from server, and no JSON to parse.")
 
@@ -295,7 +328,9 @@ class StreamLitApp:
             st.error(f"Error connecting to server: {exc}")
 
     def run(self):
-        st.set_page_config(layout="wide")
+        # Clear the screen
+        st.empty()
+
         # Run the Streamlit app
         if self.page == "auth":
             self.instantiate_auth_page()
@@ -305,6 +340,7 @@ class StreamLitApp:
             mod_id = st.session_state.get("mod_id")
             data = st.session_state.get("data")
             self.instantiate_query_page(mod_id, data)
+
 
 if __name__ == "__main__":
     # Instantiate and run the Streamlit app
