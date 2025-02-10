@@ -8,8 +8,7 @@ from datetime import datetime
 
 class StreamLitApp:
     """
-    StreamLitApp Class for the Streamlit Application, from landing page to autofilling fields.
-    Functionality for user input validation, autofilling fields, and displaying the editable form.
+    StreamLitApp manages all Streamlit pages, user interactions, and PDF creation.
     """
 
     def __init__(self):
@@ -80,41 +79,72 @@ class StreamLitApp:
         st.set_page_config(layout="wide")
         # self.container = st.empty()
 
-    def change_page(self, page):
+    #
+    # --------------------- NAVIGATION & PAGE MANAGEMENT ---------------------
+    #
+    def change_page(self, page: str) -> None:
+        """Changes the current page in session state and reruns the Streamlit app."""
         if page not in ["auth", "landing", "query"]:
-            raise ValueError(f"Invalid page: {page}. Must be one of 'auth', 'landing', or 'query'.")
+            raise ValueError(
+                f"Invalid page: {page}. Must be one of 'auth', 'landing', or 'query'."
+            )
         st.session_state["current_page"] = page
-        st.rerun()
+        # st.rerun()
 
-    def get_mfa_message(self):
-        """
-        Get the device flow link and code from the FastAPI backend.
-        """
-        response = requests.get("http://localhost:8000/prompt_azure_mfa/")
-        if response.status_code == 200:
-            try:
-                st.session_state["auth_message"] = response.json()["auth_message"]
+    def run(self) -> None:
+        """Entry point for the StreamLitApp. Manages which page to display."""
+        current_page = st.session_state.get("current_page", "")
+        if not current_page:
+            current_page = "auth"
+            st.session_state["current_page"] = current_page
+
+        if current_page == "auth":
+            self.instantiate_auth_page()
+        elif current_page == "landing":
+            self.instantiate_landing_page()
+        elif current_page == "query":
+            self.instantiate_query_page()
+
+    #
+    # --------------------- UTILITY METHODS ---------------------
+    #
+    def get_mod_id_pi_name(self):
+        return st.session_state.get("mod_id", ""), st.session_state.get("pi_name", "")
+
+    def get_curr_mod(self) -> str:
+        return st.session_state.get("curr_mod", "")
+
+    #
+    # --------------------- AUTH PAGE ---------------------
+    #
+    def get_mfa_message(self) -> None:
+        """Get the device flow link and code from the FastAPI backend."""
+        try:
+            response = requests.get("http://localhost:8000/prompt_azure_mfa/")
+            if response.status_code == 200:
+                body = response.json()
+                st.session_state["auth_message"] = body.get("auth_message", "")
                 st.session_state["show_proceed"] = True
-            except Exception as e:
-                st.error(f"Failed to get authentication code: {e}")
-        else:
-            st.error(f"Request for MFA failed. Status code {response.status_code}")
+            else:
+                st.error(f"Request for MFA failed. Status code {response.status_code}")
+        except requests.RequestException as e:
+            st.error(f"Failed to contact MFA server: {e}")
 
-    def get_user_auth(self):
-        """
-        Retrieve the user's access token after MFA.
-        """
-        response = requests.get("http://localhost:8000/acquire_access_token/")
-        if response.status_code == 200:
-            self.change_page("landing")
-        else:
-            st.error("Failed to acquire access token.")
+    def get_user_auth(self) -> None:
+        """Retrieve the user's access token after MFA."""
+        try:
+            response = requests.get("http://localhost:8000/acquire_access_token/")
+            if response.status_code == 200:
+                self.change_page("landing")
+            else:
+                st.error(
+                    f"Request for token failed. Status code {response.status_code}"
+                )
+        except requests.RequestException as e:
+            st.error(f"Failed to contact MFA server: {e}")
 
-    # TODO---The reason for rerun and clear bugs is that we're never leaving the with block
-    #       In order to fix the screen writing issues we need to empty the placeholders.
-    #       In order to empty them, we need to pass them along. Maybe we can create main
-    #       container on startup. 
-    def instantiate_auth_page(self):
+    def instantiate_auth_page(self) -> None:
+        """Displays the authentication page."""
         placeholder = st.empty()
         with placeholder.container():
             st.title("Authenticate for Sharepoint")
@@ -123,6 +153,7 @@ class StreamLitApp:
                 key="authenticate",
                 on_click=self.get_mfa_message,
             )
+
             auth_message = st.session_state.get("auth_message", "")
             if auth_message:
                 st.write(auth_message)
@@ -133,168 +164,181 @@ class StreamLitApp:
                     "Proceed", key="ProceedButtonAuth", on_click=self.get_user_auth
                 )
 
-    def instantiate_landing_page(self):
-        # Create a placeholder
+    #
+    # --------------------- LANDING PAGE ---------------------
+    #
+    def instantiate_landing_page(self) -> None:
+        """Displays the landing page for collecting MOD/Worktag ID."""
         placeholder = st.empty()
-
-        # Use the placeholder to display content
         with placeholder.container():
-            # Display the title of the Streamlit app
             st.title("Editable Form - Extension Review Matrix")
-
-            # Step 1: Collect initial inputs
             st.subheader("Identifying Information")
             st.text_input("MOD/Worktag ID:", value="", key="curr_mod")
             st.button("Proceed", key="ProceedButtonLanding", on_click=self.run_app)
 
-    def instantiate_query_page(self):
-        # Create a placeholder
+    #
+    # --------------------- QUERY PAGE ---------------------
+    #
+    def instantiate_query_page(self) -> None:
+        """Displays the query page with update, download, and autofill restore functions."""
         placeholder = st.empty()
+        data = st.session_state.get("curr_vals", {})
 
-        data = st.session_state["user_vals"]
-
-        # Use the placeholder to display content
         with placeholder.container():
+            st.title("Extension Review Matrix")
+
             # Prefill text boxes with session state data
-            col1, col2 = st.columns(2)
-            with col1:
-                st.text_input("MOD/Worktag ID:", value=data["mod_id"]["val"], key="mod_id_query")
-            with col2:
-                st.text_input("PI Name:", value=data["pi_name"]["val"], key="pi_name")
-            if data["mod_id"]["val"]:  # Ensure both fields are filled before processing
-                # st.success("Populating Extension Review Matrix Template...")
-                # Step 3: Display autofilled fields
-                st.subheader("Edit the fields below")
-                for ri_field, field in self.fields_map.items():
-                    col1, col2, col3, col4 = st.columns([1, 2, 1, 2])
+            col_left, col_right = st.columns(2)
+            with col_left:
+                st.text_input(
+                    "MOD/Worktag ID:",
+                    value=data.get("mod_id", {}).get("val", ""),
+                    key="mod_id_query",
+                )
+            with col_right:
+                st.text_input(
+                    "PI Name:",
+                    value=data.get("pi_name", {}).get("val", ""),
+                    key="pi_name",
+                )
+
+            if data.get("mod_id", {}).get("val", ""):
+                # st.subheader("Edit the fields below")
+                fields_in_order = [field for field in self.fields_map if field != "review_notes"]
+
+                
+                # Create a row of headings
+                col1, col2, col3 = st.columns([2, 1, 2])
+                with col1:
+                    st.subheader("**Review Items**")
+                with col2:
+                    st.subheader("**Action**")
+                with col3:
+                    st.subheader("**Notes**")
+
+                # Display all fields except review_notes
+                for ri_field in fields_in_order:
+                    field_label = self.fields_map[ri_field]
+                    col1, col2, col3 = st.columns([2, 1, 2])
                     with col1:
-                        st.markdown(f"**{field}**")
-                    with col2:
-                        st.text_input("", value=data[ri_field]["val"], key=ri_field)
-                    with col3:
-                        helper_text = self.fields[field]
-                        if helper_text:
-                            st.text(helper_text)
-                    with col4:
                         st.text_input(
-                            "Autofiller Notes",
-                            value=data[ri_field]["notes"],
+                            field_label,
+                            value=data.get(ri_field, {}).get("val", ""),
+                            key=ri_field,
+                        )
+                    with col2:
+                        helper_text = self.fields.get(field_label, "")
+                        if helper_text:
+                            st.caption(helper_text)
+                    with col3:
+                        st.text_area(
+                            f"Notes ({field_label})",
+                            value=data.get(ri_field, {}).get("notes", ""),
                             key=f"{ri_field}_notes",
+                            height=100,
                         )
 
+                # Now display the review notes at the bottom
+                review_key = "review_notes"
+                if review_key in self.fields_map:
+                    st.subheader("Review Notes")
+                    st.text_area(
+                        label=" ",
+                        value=data.get(review_key, {}).get("val", ""),
+                        key=review_key,
+                        height=300
+                    )
+
+            # Utility buttons
+            with st.sidebar:
                 st.button(
-                    "Update Values",
-                    key="UpdateButton",
-                    on_click=self.update_values,
+                    "Update Values", key="UpdateButton", on_click=self.update_values
                 )
                 st.button(
                     "Download PDF",
                     key="DownloadPDFButton",
                     on_click=self.download_prefilled_pdf,
                 )
+                st.button(
+                    "Restore Autofill",
+                    key="RestoreAutofiller",
+                    on_click=self.restore_autofiller_responses,
+                )
+                st.button("New Mod", key="NewMod", on_click=self.new_mod)
 
-    def get_mod_id_pi_name(self):
-        # Retrieve MOD/Worktag ID from session state
-        return st.session_state.get("mod_id", ""), st.session_state.get("pi_name", "")
-    
-    def get_curr_mod(self):
-        return st.session_state.get("curr_mod", "")
+    def new_mod(self) -> None:
+        """Switch back to landing page."""
+        self.change_page("landing")
 
-    def update_values(self):
+    def restore_autofiller_responses(self) -> None:
+        """Revert to original autofiller responses."""
+        print(st.session_state["curr_vals"])
+        print(st.session_state["autofilled_vals"])
+        st.session_state["curr_vals"] = st.session_state.get("autofilled_vals", {})
+        # st.rerun()
+
+    def update_values(self) -> None:
         """
         Update the filled entries from user input and save to session state.
+
+        After execution, remain on the query page.
         """
-        # mod_id, pi_name = self.get_mod_id_pi_name()
-        updated_values = st.session_state.get("user_vals", {})
+        updated = st.session_state.get("curr_vals", {}).copy()
+        for key in self.fields_map:
+            updated[key] = {
+                "val": st.session_state.get(key, ""),
+                "notes": st.session_state.get(f"{key}_notes", ""),
+            }
 
-        for key in self.fields_map.keys():
-            updated_values[key] = {
-                "val": st.session_state.get(key, ""), 
-                "notes": st.session_state.get(f"{key}_notes")
-                }
-
-        # updated_values["pi_name"] = {"val": pi_name, "notes": ""}
-        # updated_values["mod_id"] = {"val": mod_id, "notes": ""}
-
-        st.session_state["user_vals"] = updated_values
+        st.session_state["curr_vals"] = updated
         st.session_state["page"] = "query"
-        st.rerun()
+        # st.rerun()
 
-    def download_prefilled_pdf(self):
-        """
-        Downloads and writes a new PDF populated with updated values.
-        Includes print() statements for debugging and Streamlit messages.
-        """
+    #
+    # --------------------- PDF DOWNLOAD ---------------------
+    #
+    def download_prefilled_pdf(self) -> None:
+        """Create and save a new PDF containing the updated values."""
         try:
             with st.empty() as container:
-                print("Starting the PDF creation process...")
                 st.info("Starting the PDF creation process...")
-
-                # Retrieve necessary data
                 mod_id, pi_name = self.get_mod_id_pi_name()
-                # self.update_values()
-                updated_values = st.session_state.get("user_vals", {})
-
-                print(f"Retrieved mod_id: {mod_id}")
-                print(f"PI name: {pi_name}")
-                print(f"Updated values for PDF fields: {updated_values}")
-
-                # Template path
+                updated = st.session_state.get("curr_vals", {})
                 template_path = "./assets/extension_review_matrix.pdf"
-                # st.write(f"Reading PDF template from: {template_path}")
-                print(f"Reading PDF template from {template_path}")
 
-                # Use a 'with' block so file remains open while we're working with PyPDF2
                 with open(template_path, "rb") as template_file:
                     pdf_template = PdfReader(template_file)
                     writer = PdfWriter()
 
-                    # Update and add each page within the same 'with' block
                     for idx, page in enumerate(pdf_template.pages):
-                        print(f"Processing page {idx + 1} of {len(pdf_template.pages)}...")
-
-                        for key, pdf_field_name in self.fields_map_pdf.items():
-                            if pdf_field_name:
-                                value_to_update = updated_values.get(key, "").get("val", "")
-                                print(
-                                    f"Updating field '{pdf_field_name}' with value '{value_to_update}'"
-                                )
+                        for key, field_name in self.fields_map_pdf.items():
+                            if field_name:
+                                val = updated.get(key, {}).get("val", "")
                                 writer.update_page_form_field_values(
-                                    page, {pdf_field_name: value_to_update}
+                                    page, {field_name: val}
                                 )
-
-                        # After updating, add the page to the writer
                         writer.add_page(page)
 
-                    # Once all pages are updated, generate the output filename
-                    filename = (
-                        f"./data/Review_Matrix_{pi_name.replace(", ", "_")}_"
-                        f"{mod_id}_{datetime.now().strftime('%Y-%m-%d')}.pdf"
-                    )
-
-                    # st.write(f"Writing filled PDF to: {filename}")
-                    print(f"Writing filled PDF to: {filename}")
-
-                    with open(filename, "wb") as output_file:
-                        writer.write(output_file)
+                filename = (
+                    f"./data/Review_Matrix_{pi_name.replace(',', '_')}_{mod_id}_"
+                    f"{datetime.now().strftime('%Y-%m-%d')}.pdf"
+                )
+                with open(filename, "wb") as output_file:
+                    writer.write(output_file)
 
                 st.success(f"Your PDF has been created and saved as: {filename}")
-                # print("PDF creation completed successfully.")
-
-                # st.button(
-                #     "Click here to continue",
-                #     key="ContinueButton",
-                #     on_click=self.change_page("landing"),
-                # )
 
         except Exception as e:
-            print(f"An error occurred: {e}")
             st.error(f"An error occurred while creating the PDF: {e}")
 
-
-
-    def run_app(self):
-        """Get the autofiller responses and save them to session state."""
+    #
+    # --------------------- SERVER REQUEST ---------------------
+    #
+    def run_app(self) -> None:
+        """
+        Get the autofiller responses from the backend, store them in session state,
+        then go to the query page.
+        """
         mod_id = self.get_curr_mod()
         try:
             response = requests.get(
@@ -308,41 +352,25 @@ class StreamLitApp:
                         st.error("No 'Data' field in JSON response.")
                         return
                     st.session_state["autofilled_vals"] = data
-                    st.session_state["user_vals"] = data
+                    st.session_state["curr_vals"] = data.copy()
                     self.change_page("query")
                 except (json.JSONDecodeError, TypeError) as e:
                     st.error(f"Error processing data: {e}")
             else:
                 try:
-                    error_detail = response.json().get('detail', 'Unknown error')
+                    detail = response.json().get("detail", "Unknown error")
                 except json.JSONDecodeError:
-                    error_detail = "Error from server, and no JSON to parse."
-                st.error(f"Error from server: {error_detail}")
+                    detail = "No JSON to parse."
+                st.error(f"Error from server: {detail}")
         except requests.RequestException as exc:
             st.error(f"Error connecting to server: {exc}")
 
-    def run(self):
-        # # Clear the screen
-        # st.empty()
 
-        # Get the page to instantiate
-        current_page = st.session_state.get("current_page", "")
-
-        # On startup, set page to "auth"
-        if not current_page:
-            current_page = "auth"
-            st.session_state["current_page"] = current_page
-
-        # Run the Streamlit app
-        if current_page == "auth":
-            self.instantiate_auth_page()
-        elif current_page == "landing":
-            self.instantiate_landing_page()
-        elif current_page == "query":
-            self.instantiate_query_page()
+def main():
+    """Instantiate and run the streamlit app."""
+    app = StreamLitApp()
+    app.run()
 
 
 if __name__ == "__main__":
-    # Instantiate and run the Streamlit app
-    streamlit_app = StreamLitApp()
-    streamlit_app.run()
+    main()
