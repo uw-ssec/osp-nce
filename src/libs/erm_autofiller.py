@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ERMAutofiller:
     """
     Autofiller to run queries and apply business logic to fill the ERM form.
-    
+
     At initialization, the autofiller queries the RAD database and pulls and
     processes the extension forms from the Sharepoint.
 
@@ -36,8 +36,6 @@ class ERMAutofiller:
 
     # Shared constants and flags
     NA_FLAG = "AUTOMATED RESPONSE CURRENTLY UNAVAILABLE"
-    IN_YES = "Y"
-    IN_NO = "N"
     OUT_YES = "YES"
     OUT_NO = "NO"
 
@@ -64,12 +62,10 @@ class ERMAutofiller:
         )
 
         # Pull extension forms from sharepoint and query for the relevant mod
-        df_sharepoint = (
-            sharepoint_connector.read_extension_forms_from_short_link(
-                self.SHORT_LINK
-            )
+        df_sharepoint = sharepoint_connector.read_extension_forms_from_short_link(
+            self.SHORT_LINK
         )
-        
+
         df_sharepoint_clean = self.process_extension_forms(
             df_sharepoint, df_rad.loc[0, "AwardNumber"]
         )
@@ -80,29 +76,25 @@ class ERMAutofiller:
                 f"RAD result set empty: {df_rad.empty}.\n"
                 f"Extensions result set empty: {df_sharepoint_clean.empty}"
             )
-    
+
         # Assign instance attributes
-        
+
         # We use dicts to track the data value AND source for each column
         # this way, we can flexible reference data sources (which may evolve) in the notes
         # and highlight any discrepancies between sources
         self.data_rad = {}
-        
+
         for col in df_rad.columns:
-            self.data_rad[col] = {
-                "value": df_rad[col].values[0],
-                "source": "RAD"
-            }
-        
+            self.data_rad[col] = {"value": df_rad[col].values[0], "source": "RAD"}
+
         self.data_sharepoint = {}
-        
+
         for col in df_sharepoint_clean.columns:
             self.data_sharepoint[col] = {
                 "value": df_sharepoint_clean[col].values[0],
-                "source": "Sharepoint PI request form"
+                "source": "Sharepoint PI request form",
             }
-        
-        
+
         self.mod_id = mod_id
         self.award_number = df_rad["AwardNumber"]
         self.answers = {}  # autofill() will store the review item results here
@@ -148,7 +140,10 @@ class ERMAutofiller:
             dict: A dictionary of all 17 results, each of which is of the form
                 {"val": str, "notes": str}.
         """
-        self.answers["pi_name"] = {"val": self.df_rad.loc[0, "pi_name"], "notes": ""}
+        self.answers["pi_name"] = {
+            "val": self.data_rad["pi_name"]["value"],
+            "notes": "",
+        }
         self.answers["mod_id"] = {"val": self.mod_id, "notes": ""}
         self.answers["ri1"] = self.ri1()
         self.answers["ri2"] = self.ri2()
@@ -169,7 +164,7 @@ class ERMAutofiller:
         self.answers["ri17"] = self.ri17()
         self.answers["review_notes"] = {"val": "", "notes": ""}
         return self.answers
-    
+
     def get_concatenated_notes(self) -> str:
         """
         Concatenates the notes from all the answers returned by the different methods.
@@ -178,10 +173,13 @@ class ERMAutofiller:
             str: Concatenated notes from all answers, to be displayed at the bottom of the
                 autofilled ERM Form.
         """
-        notes_list = [answer["notes"] for answer in self.answers.values() if 
-                      ("notes" in answer) and (answer["notes"] != "")]
+        notes_list = [
+            answer["notes"]
+            for answer in self.answers.values()
+            if ("notes" in answer) and (answer["notes"] != "")
+        ]
         return "\n".join(notes_list)
-    
+
     def to_json(self) -> str:
         """
         Converts the `answers` dictionary to a JSON string.
@@ -195,25 +193,34 @@ class ERMAutofiller:
     # ------------------------------------------------------------------------
     # Helper Methods
     # ------------------------------------------------------------------------
-    def _is_yes(self, db_yes_no: str) -> str:
+    def _is_yes(self, val: str) -> str:
         """
-        Translates a database-encoded "Y"/"N" into "YES"/"NO". This is to enforce
-        consistency in the output of the autofill methods.
+        Formats indicators to strings
 
         Args:
-            db_yes_no (str): Database value "Y" or "N".
+            val: Value to probe.
 
         Returns:
-            str: "YES" if input is "Y", "NO" if input is "N".
+            str: self.OUT_YES or self.OUT_NO
 
         Raises:
-            ValueError: If db_yes_no is not recognized.
+            ValueError: If val is not recognized.
         """
-        if isinstance(db_yes_no, str) and db_yes_no in [
-            self.IN_YES,
-            self.IN_NO,
-        ]:
-            return self.OUT_YES if db_yes_no == self.IN_YES else self.OUT_NO
+        val_string = str(val.lower())
+        if (
+            val_string == "yes"
+            or val_string == "y"
+            or val_string == "1"
+            or val_string == "true"
+        ):
+            return self.OUT_YES
+        elif (
+            val_string == "no"
+            or val_string == "n"
+            or val_string == "0"
+            or val_string == "false"
+        ):
+            return self.OUT_NO
         else:
             logger.error("Unexpected input: expected 'Y' or 'N'")
             raise ValueError("Unexpected input: expected 'Y' or 'N'")
@@ -235,9 +242,7 @@ class ERMAutofiller:
         if isinstance(condition, (bool, np.bool_)):
             return self.OUT_YES if condition else self.OUT_NO
         else:
-            raise TypeError(
-                f"Expected boolean input, got {type(condition)} instead"
-            )
+            raise TypeError(f"Expected boolean input, got {type(condition)} instead")
 
     # ------------------------------------------------------------------------
     # Individual Business Logic Methods (RI0 - RI17)
@@ -321,11 +326,8 @@ class ERMAutofiller:
             notes = f"Billed to Date (${billed_to_date_amt:.2f}) is greater than Total Authorized Amount (${authorized_amount:.2f})."
         else:
             notes = f"Billed to Date (${billed_to_date_amt:.2f}) is not greater than Total Authorized Amount (${authorized_amount:.2f})."
-        
-        return {
-            "val": self._tf_to_yn(balance_negative),
-            "notes": notes
-        }
+
+        return {"val": self._tf_to_yn(balance_negative), "notes": notes}
 
     def ri4(self) -> dict:
         """
@@ -346,9 +348,11 @@ class ERMAutofiller:
         billed_to_date_amt = self.data_rad["BilledToDateAmount"]["value"]
         balance = authorized_amount - billed_to_date_amt
         balance_p = 100 * (float(balance) / authorized_amount)
-        
+
         balance_percentage = balance_p >= 25
-        extension_form_value = self.data_sharepoint["IsRemainingBalanceMoreThan25Percent"]["value"]
+        extension_form_value = self.data_sharepoint[
+            "IsRemainingBalanceMoreThan25Percent"
+        ]["value"]
         explanation = self.data_sharepoint["ExplanationForRemainingBalance"]["value"]
         source = self.data_sharepoint["IsRemainingBalanceMoreThan25Percent"]["source"]
 
@@ -387,18 +391,17 @@ class ERMAutofiller:
                 }
         """
         try:
-            is_temp_extension = self.data_sharepoint["isTemporaryExtensionRequest"]["value"]
+            is_temp_extension = self.data_sharepoint["isTemporaryExtensionRequest"][
+                "value"
+            ]
             source = self.data_sharepoint["isTemporaryExtensionRequest"]["source"]
         except KeyError as e:
             logger.error(f"KeyError accessing data: {e}")
-            return {
-                "val": self.NA_FLAG,
-                "notes": ""
-            }
+            return {"val": self.NA_FLAG, "notes": ""}
 
         return {
-            "val": self._tf_to_yn(is_temp_extension[0] == self.IN_YES),
-            "notes": f"Source for temporary request is: {source}"
+            "val": self._tf_to_yn(is_temp_extension[0] == "Yes"),
+            "notes": f"Source for temporary request is: {source}",
         }
 
     def ri7(self) -> dict:
@@ -411,7 +414,7 @@ class ERMAutofiller:
                     "val": "YES" or "NO",
                     "notes": "Answer pulled from Extension Form data"
                 }
-                
+
         Development note:
         This information is theoretically also accessible from RAD; we have not validated business
         logic sufficiently to implement this yet, but a future version of this method could
@@ -422,14 +425,11 @@ class ERMAutofiller:
             source = self.data_sharepoint["isNewCostShare"]["source"]
         except KeyError as e:
             logger.error(f"KeyError accessing data: {e}")
-            return {
-                "val": self.NA_FLAG,
-                "notes": ""
-            }
+            return {"val": self.NA_FLAG, "notes": ""}
 
         return {
             "val": self._tf_to_yn(is_new_cost_share == "Yes"),
-            "notes": f"New cost share source is {source}"
+            "notes": f"New cost share source is {source}",
         }
 
     def ri8(self) -> dict:
@@ -452,18 +452,19 @@ class ERMAutofiller:
             )
         except KeyError as e:
             logger.error(f"KeyError accessing data: {e}")
-            return {
-                "val": self.NA_FLAG,
-                "notes": ""
-            }
-            
+            return {"val": self.NA_FLAG, "notes": ""}
+
         reported_human_subjects = None
-        
-        rad_source = self.data_rad['isHumanSubjects']['source']
-        rad_value = self.data_rad['isHumanSubjects']['value']
-        sharepoint_source = self.data_sharepoint['ContinuingHumanSubjectsResearch']['source']
-        sharepoint_value = self.data_sharepoint['ContinuingHumanSubjectsResearch']['value']
-        
+
+        rad_source = self.data_rad["isHumanSubjects"]["source"]
+        rad_value = self.data_rad["isHumanSubjects"]["value"]
+        sharepoint_source = self.data_sharepoint["ContinuingHumanSubjectsResearch"][
+            "source"
+        ]
+        sharepoint_value = self.data_sharepoint["ContinuingHumanSubjectsResearch"][
+            "value"
+        ]
+
         if is_human_subjects_rad[0] == is_human_subjects_ext[0]:
             reported_human_subjects = self._is_yes(is_human_subjects_rad)
             notes = f"{rad_source} and {sharepoint_source} form data match; reported human subjects: {reported_human_subjects}"
@@ -475,11 +476,10 @@ class ERMAutofiller:
                 f"{sharepoint_source} reported: {sharepoint_value}. "
                 f"\nReported answer uses {sharepoint_source} data."
             )
-            
 
         return {
-            "val": self._tf_to_yn(reported_human_subjects[0] == self.IN_YES),
-            "notes": notes
+            "val": self._tf_to_yn(reported_human_subjects[0] == "Yes"),
+            "notes": notes,
         }
 
     def ri9(self) -> dict:
@@ -495,20 +495,19 @@ class ERMAutofiller:
         """
         try:
             is_animal_use_rad = self._is_yes(self.data_rad["isAnimalUse"]["value"])
-            is_animal_use_ext = self._is_yes(self.data_sharepoint["ContinuingAnimalUse"]["value"])
+            is_animal_use_ext = self._is_yes(
+                self.data_sharepoint["AnimalResearchDone"]["value"]
+            )
         except KeyError as e:
             logger.error(f"KeyError accessing data: {e}")
-            return {
-                "val": self.NA_FLAG,
-                "notes": ""
-            }
+            return {"val": self.NA_FLAG, "notes": ""}
 
         reported_animal_use = None
-        
-        rad_source = self.data_rad['isAnimalUse']['source']
-        rad_value = self.data_rad['isAnimalUse']['value']
-        sharepoint_source = self.data_sharepoint['ContinuingAnimalUse']['source']
-        sharepoint_value = self.data_sharepoint['ContinuingAnimalUse']['value']
+
+        rad_source = self.data_rad["isAnimalUse"]["source"]
+        rad_value = self.data_rad["isAnimalUse"]["value"]
+        sharepoint_source = self.data_sharepoint["AnimalResearchDone"]["source"]
+        sharepoint_value = self.data_sharepoint["AnimalResearchDone"]["value"]
 
         if is_animal_use_rad[0] == is_animal_use_ext[0]:
             reported_animal_use = self._is_yes(is_animal_use_rad)
@@ -523,8 +522,8 @@ class ERMAutofiller:
             )
 
         return {
-            "val": self._tf_to_yn(reported_animal_use[0] == self.IN_YES),
-            "notes": notes
+            "val": self._tf_to_yn(reported_animal_use[0] == "Yes"),
+            "notes": notes,
         }
 
     def ri10(self) -> dict:
@@ -558,7 +557,7 @@ class ERMAutofiller:
                     "notes": empty, because not yet implemented
                 }
         """
-        nih_second_plus = self.df_sharepoint.loc[0, "isNIH2PlusExtension"]
+        nih_second_plus = self.data_sharepoint["isNIH2PlusExtension"]["value"]
         return {
             "val": self.NA_FLAG,
             "notes": "",
@@ -602,21 +601,18 @@ class ERMAutofiller:
             project_type = self.data_rad["projectType"]["value"]
         except KeyError as e:
             logger.error(f"KeyError accessing data: {e}")
-            return {
-                "val": self.NA_FLAG,
-                "notes": ""
-            }
+            return {"val": self.NA_FLAG, "notes": ""}
 
-        is_federal_contract = (
-            sponsor_entity_type == "Federal Government"
-        ) and (project_type == "Contract")
-        
+        is_federal_contract = (sponsor_entity_type == "Federal Government") and (
+            project_type == "Contract"
+        )
+
         return {
             "val": self._tf_to_yn(is_federal_contract),
             "notes": (
-            f"Prime Sponsor Entity Type: {sponsor_entity_type} (source: {self.data_rad['PrimeSponsorFECDMEntityType']['source']}), "
-            f"Project Type: {project_type} (source: {self.data_rad['projectType']['source']})."
-            )
+                f"Prime Sponsor Entity Type: {sponsor_entity_type} (source: {self.data_rad['PrimeSponsorFECDMEntityType']['source']}), "
+                f"Project Type: {project_type} (source: {self.data_rad['projectType']['source']})."
+            ),
         }
 
     def ri14(self) -> dict:
@@ -703,15 +699,14 @@ class ERMAutofiller:
                 }
         """
         try:
-            all_deliverables_met = self.data_sharepoint["allDeliverablesSubmitted"]["value"]
+            all_deliverables_met = self.data_sharepoint["allDeliverablesSubmitted"][
+                "value"
+            ]
         except KeyError as e:
             logger.error(f"KeyError accessing data: {e}")
-            return {
-                "val": self.NA_FLAG,
-                "notes": ""
-            }
+            return {"val": self.NA_FLAG, "notes": ""}
 
         return {
-            "val": self._tf_to_yn(all_deliverables_met[0] == self.IN_YES),
+            "val": self._tf_to_yn(all_deliverables_met == "Yes"),
             "notes": f"Source for all deliverables submitted is: {self.data_sharepoint['allDeliverablesSubmitted']['source']}",
         }
