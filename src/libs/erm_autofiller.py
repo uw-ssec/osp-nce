@@ -5,8 +5,8 @@ import logging
 import pandas as pd
 import numpy as np
 
-from sharepoint_connector import SharepointConnector
-from sql_connector import SQLConnector
+from libs.sharepoint_connector import SharepointConnector
+from libs.sql_connector import SQLConnector
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -32,10 +32,10 @@ class ERMAutofiller:
     SHORT_LINK = os.getenv("EXTENSION_FORMS_SHORT_LINK")
 
     # Path to RAD query
-    RAD_QUERY_FILE = "../../sql/nonprod_rad.sql"
+    RAD_QUERY_FILE = "./sql/nonprod_rad.sql"
 
     # Shared constants and flags
-    NA_FLAG = "AUTOMATED RESPONSE UNAVAILABLE"
+    NA_FLAG = "AUTOMATED RESPONSE CURRENTLY UNAVAILABLE"
     IN_YES = "Y"
     IN_NO = "N"
     OUT_YES = "YES"
@@ -71,7 +71,7 @@ class ERMAutofiller:
         )
         
         df_sharepoint_clean = self.process_extension_forms(
-            df_sharepoint, df_rad["AwardNumber"]
+            df_sharepoint, df_rad.loc[0, "AwardNumber"]
         )
 
         if df_rad.empty or df_sharepoint_clean.empty:
@@ -135,7 +135,7 @@ class ERMAutofiller:
 
         # Standardize the award number and return the filtered data
         df_filter["UWAwardNumber"] = award_number
-        return df_filter
+        return df_filter.reset_index()
 
     def autofill(self):
         """
@@ -148,6 +148,8 @@ class ERMAutofiller:
             dict: A dictionary of all 17 results, each of which is of the form
                 {"val": str, "notes": str}.
         """
+        self.answers["pi_name"] = {"val": self.df_rad.loc[0, "pi_name"], "notes": ""}
+        self.answers["mod_id"] = {"val": self.mod_id, "notes": ""}
         self.answers["ri1"] = self.ri1()
         self.answers["ri2"] = self.ri2()
         self.answers["ri3"] = self.ri3()
@@ -165,6 +167,7 @@ class ERMAutofiller:
         self.answers["ri15"] = self.ri15()
         self.answers["ri16"] = self.ri16()
         self.answers["ri17"] = self.ri17()
+        self.answers["review_notes"] = {"val": "", "notes": ""}
         return self.answers
     
     def get_concatenated_notes(self) -> str:
@@ -237,21 +240,8 @@ class ERMAutofiller:
             )
 
     # ------------------------------------------------------------------------
-    # Individual Business Logic Methods (RI1 - RI17)
+    # Individual Business Logic Methods (RI0 - RI17)
     # ------------------------------------------------------------------------
-    def ri0(self) -> dict:
-        """
-        Extracts the PI Name from the RAD result set and packages it for return.
-
-        Returns:
-            dict:
-                {
-                    "val": PI Name,
-                    "notes": ""
-                }
-        """
-        return {"val": self.df_rad["pi_name"], "notes": ""}
-
     def ri1(self) -> dict:
         """
         Checks that Significant Financial Interest disclosures are current.
@@ -377,7 +367,7 @@ class ERMAutofiller:
             dict:
                 {
                     "val": NA_FLAG,
-                    "notes": "Specific award lines question not possible with current data."
+                    "notes": ""
                 }
         """
         return {
@@ -568,6 +558,7 @@ class ERMAutofiller:
                     "notes": empty, because not yet implemented
                 }
         """
+        nih_second_plus = self.df_sharepoint.loc[0, "isNIH2PlusExtension"]
         return {
             "val": self.NA_FLAG,
             "notes": "",
@@ -633,7 +624,6 @@ class ERMAutofiller:
         Indicates if the sponsor includes e-verify.
 
         Not possible with current data sources, so we return NA.
-
 
         Returns:
             dict:
