@@ -13,6 +13,7 @@ class StreamLitApp:
     """
 
     def __init__(self):
+        # TODO --- Move this stuff to the ERM autofiller in some way
         # Initialize the fields with their helper texts
         self.fields = {
             "SFI Current?": "No - Send email to research@uw.edu for review.",
@@ -76,32 +77,33 @@ class StreamLitApp:
             "ri17": "All deliverables  submitted",
             "review_notes": "Review Notes",
         }
-
-        self.page = st.session_state.get("page", "auth")
         st.set_page_config(layout="wide")
+        # self.container = st.empty()
 
-    def change_page(self, page, mod_id=None, data=None):
-        if page != "query":
-            st.session_state["page"] = page
-            st.rerun()
-        else:
-            st.session_state["page"] = page
-            st.session_state["mod_id"] = mod_id
-            st.session_state["data"] = data
-            st.rerun()
+    def change_page(self, page):
+        if page not in ["auth", "landing", "query"]:
+            raise ValueError(f"Invalid page: {page}. Must be one of 'auth', 'landing', or 'query'.")
+        st.session_state["current_page"] = page
+        st.rerun()
 
     def get_mfa_message(self):
-        # Retrieve the MFA message from the API
+        """
+        Get the device flow link and code from the FastAPI backend.
+        """
         response = requests.get("http://localhost:8000/prompt_azure_mfa/")
         if response.status_code == 200:
-            self.auth_message = response.json()["auth_message"]
-            st.session_state["auth_message"] = self.auth_message
-            st.session_state["show_proceed"] = True
+            try:
+                st.session_state["auth_message"] = response.json()["auth_message"]
+                st.session_state["show_proceed"] = True
+            except Exception as e:
+                st.error(f"Failed to get authentication code: {e}")
         else:
-            st.error("Failed to retrieve MFA message.")
+            st.error(f"Request for MFA failed. Status code {response.status_code}")
 
     def get_user_auth(self):
-        # Retrieve the access token from the API
+        """
+        Retrieve the user's access token after MFA.
+        """
         response = requests.get("http://localhost:8000/acquire_access_token/")
         if response.status_code == 200:
             self.change_page("landing")
@@ -142,22 +144,24 @@ class StreamLitApp:
 
             # Step 1: Collect initial inputs
             st.subheader("Identifying Information")
-            mod_id = st.text_input("MOD/Worktag ID:", value="", key="mod_id")
+            st.text_input("MOD/Worktag ID:", value="", key="curr_mod")
             st.button("Proceed", key="ProceedButtonLanding", on_click=self.run_app)
 
-    def instantiate_query_page(self, mod_id, data):
+    def instantiate_query_page(self):
         # Create a placeholder
         placeholder = st.empty()
+
+        data = st.session_state["user_vals"]
 
         # Use the placeholder to display content
         with placeholder.container():
             # Prefill text boxes with session state data
             col1, col2 = st.columns(2)
             with col1:
-                st.text_input("MOD/Worktag ID:", value=mod_id, key="mod_id_query")
+                st.text_input("MOD/Worktag ID:", value=data["mod_id"]["val"], key="mod_id_query")
             with col2:
                 st.text_input("PI Name:", value=data["pi_name"]["val"], key="pi_name")
-            if mod_id:  # Ensure both fields are filled before processing
+            if data["mod_id"]["val"]:  # Ensure both fields are filled before processing
                 # st.success("Populating Extension Review Matrix Template...")
                 # Step 3: Display autofilled fields
                 st.subheader("Edit the fields below")
@@ -178,11 +182,11 @@ class StreamLitApp:
                             key=f"{ri_field}_notes",
                         )
 
-                # st.button(
-                #     "Update Values",
-                #     key="UpdateButton",
-                #     on_click=self.update_values,
-                # )
+                st.button(
+                    "Update Values",
+                    key="UpdateButton",
+                    on_click=self.update_values,
+                )
                 st.button(
                     "Download PDF",
                     key="DownloadPDFButton",
@@ -192,34 +196,29 @@ class StreamLitApp:
     def get_mod_id_pi_name(self):
         # Retrieve MOD/Worktag ID from session state
         return st.session_state.get("mod_id", ""), st.session_state.get("pi_name", "")
+    
+    def get_curr_mod(self):
+        return st.session_state.get("curr_mod", "")
 
     def update_values(self):
-        # Update the values in the database with the new values
-        mod_id, pi_name = self.get_mod_id_pi_name()
-        updated_values = {}
-        for key in self.fields_map.keys():
-            updated_values[key] = st.session_state.get(key, "")
-        updated_values["pi_name"] = pi_name
-        updated_values["mod_id"] = mod_id
-        return updated_values
+        """
+        Update the filled entries from user input and save to session state.
+        """
+        # mod_id, pi_name = self.get_mod_id_pi_name()
+        updated_values = st.session_state.get("user_vals", {})
 
-    # def download_prefilled_pdf(self):
-    #     mod_id = self.get_mod_id()
-    #     pi_name = st.session_state.get("pi_name", "")
-    #     updated_values = self.update_values(pi_name)
-    #     pdf_template = PdfReader(open("./assets/extension_review_matrix.pdf", "rb"))
-    #     writer = PdfWriter()
-    #     for page in pdf_template.pages:
-    #         writer.add_page(page)
-    #         for key, value in self.fields_map_pdf.items():
-    #             update_dict = {value: updated_values[key]}
-    #             if value:
-    #                 writer.update_page_form_field_values(page, update_dict)
-    #     filename = f"./assets/Extension_Review_Matix_{pi_name}_{mod_id}_{datetime.now().strftime('%Y-%m-%d')}.pdf"
-    #     with open(filename, "wb") as f:
-    #         writer.write(f)
-    #     st.text(f"Your PDF has been downloaded with filename {filename}.")
-    #     st.button("Click here to continue with", key="ContinueButton", on_click=self.change)
+        for key in self.fields_map.keys():
+            updated_values[key] = {
+                "val": st.session_state.get(key, ""), 
+                "notes": st.session_state.get(f"{key}_notes")
+                }
+
+        # updated_values["pi_name"] = {"val": pi_name, "notes": ""}
+        # updated_values["mod_id"] = {"val": mod_id, "notes": ""}
+
+        st.session_state["user_vals"] = updated_values
+        st.session_state["page"] = "query"
+        st.rerun()
 
     def download_prefilled_pdf(self):
         """
@@ -233,7 +232,8 @@ class StreamLitApp:
 
                 # Retrieve necessary data
                 mod_id, pi_name = self.get_mod_id_pi_name()
-                updated_values = self.update_values()
+                # self.update_values()
+                updated_values = st.session_state.get("user_vals", {})
 
                 print(f"Retrieved mod_id: {mod_id}")
                 print(f"PI name: {pi_name}")
@@ -255,7 +255,7 @@ class StreamLitApp:
 
                         for key, pdf_field_name in self.fields_map_pdf.items():
                             if pdf_field_name:
-                                value_to_update = updated_values.get(key, "")
+                                value_to_update = updated_values.get(key, "").get("val", "")
                                 print(
                                     f"Updating field '{pdf_field_name}' with value '{value_to_update}'"
                                 )
@@ -268,7 +268,7 @@ class StreamLitApp:
 
                     # Once all pages are updated, generate the output filename
                     filename = (
-                        f"./assets/Review_Matrix_{pi_name.replace(", ", "_")}_"
+                        f"./data/Review_Matrix_{pi_name.replace(", ", "_")}_"
                         f"{mod_id}_{datetime.now().strftime('%Y-%m-%d')}.pdf"
                     )
 
@@ -294,54 +294,52 @@ class StreamLitApp:
 
 
     def run_app(self):
-        mod_id, pi_name = self.get_mod_id_pi_name()
+        """Get the autofiller responses and save them to session state."""
+        mod_id = self.get_curr_mod()
         try:
             response = requests.get(
                 "http://localhost:8000/run", params={"mod_id": mod_id}
             )
-            # print("Status code:", response.status_code)  # Debug
-            # print("JSON response:", response.json())       # Debug
             if response.status_code == 200:
                 try:
                     json_data = response.json()
-                    # Make sure 'Data' exists
                     data = json.loads(json_data.get("Data", None))
                     if data is None:
                         st.error("No 'Data' field in JSON response.")
                         return
-                    print(type(data))
-
-                    st.session_state["mod_id"] = mod_id
-                    st.session_state["data"] = data
-                    self.change_page("query", mod_id=mod_id, data=data)
-                except Exception as e:
+                    st.session_state["autofilled_vals"] = data
+                    st.session_state["user_vals"] = data
+                    self.change_page("query")
+                except (json.JSONDecodeError, TypeError) as e:
                     st.error(f"Error processing data: {e}")
             else:
-                # If we do get a response but with an error code, show details
                 try:
-                    st.error(
-                        f"Error from server: {response.json().get('detail', 'Unknown error')}"
-                    )
-                except:
-                    st.error("Error from server, and no JSON to parse.")
-
-        except Exception as exc:
-            # This means the request outright failed (connection issue, server not running, etc.)
+                    error_detail = response.json().get('detail', 'Unknown error')
+                except json.JSONDecodeError:
+                    error_detail = "Error from server, and no JSON to parse."
+                st.error(f"Error from server: {error_detail}")
+        except requests.RequestException as exc:
             st.error(f"Error connecting to server: {exc}")
 
     def run(self):
-        # Clear the screen
-        st.empty()
+        # # Clear the screen
+        # st.empty()
+
+        # Get the page to instantiate
+        current_page = st.session_state.get("current_page", "")
+
+        # On startup, set page to "auth"
+        if not current_page:
+            current_page = "auth"
+            st.session_state["current_page"] = current_page
 
         # Run the Streamlit app
-        if self.page == "auth":
+        if current_page == "auth":
             self.instantiate_auth_page()
-        elif self.page == "landing":
+        elif current_page == "landing":
             self.instantiate_landing_page()
-        elif self.page == "query":
-            mod_id = st.session_state.get("mod_id")
-            data = st.session_state.get("data")
-            self.instantiate_query_page(mod_id, data)
+        elif current_page == "query":
+            self.instantiate_query_page()
 
 
 if __name__ == "__main__":
