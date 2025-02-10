@@ -98,7 +98,6 @@ async def run(
     try:
         erm_autofiller = ERMAutofiller(mod_id, sql_connector, sharepoint_connector)
         erm_autofiller.autofill()
-        print(erm_autofiller.to_json())
         return {"Data": erm_autofiller.to_json(), "Status": "200"}
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
