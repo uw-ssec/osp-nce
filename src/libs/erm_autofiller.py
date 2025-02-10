@@ -17,7 +17,7 @@ class ERMAutofiller:
     Autofiller to run queries and apply business logic to fill the ERM form.
 
     During initialization, the autofiller queries the RAD database and pulls and 
-    processes the extension forms from the Sharepoint.
+    processes the extension forms from Sharepoint.
 
     Attributes:
         df_rad (pandas.DataFrame): DataFrame combining a single row with data

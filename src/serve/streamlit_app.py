@@ -158,7 +158,7 @@ class StreamLitApp:
             with col2:
                 st.text_input("PI Name:", value=data["pi_name"]["val"], key="pi_name")
             if mod_id:  # Ensure both fields are filled before processing
-                st.success("Populating Extension Review Matrix Template...")
+                # st.success("Populating Extension Review Matrix Template...")
                 # Step 3: Display autofilled fields
                 st.subheader("Edit the fields below")
                 for ri_field, field in self.fields_map.items():
@@ -178,11 +178,11 @@ class StreamLitApp:
                             key=f"{ri_field}_notes",
                         )
 
-                st.button(
-                    "Update Values",
-                    key="UpdateButton",
-                    on_click=self.update_values,
-                )
+                # st.button(
+                #     "Update Values",
+                #     key="UpdateButton",
+                #     on_click=self.update_values,
+                # )
                 st.button(
                     "Download PDF",
                     key="DownloadPDFButton",
@@ -227,71 +227,74 @@ class StreamLitApp:
         Includes print() statements for debugging and Streamlit messages.
         """
         try:
-            print("Starting the PDF creation process...")
-            st.info("Starting the PDF creation process...")
+            with st.empty() as container:
+                print("Starting the PDF creation process...")
+                st.info("Starting the PDF creation process...")
 
-            # Retrieve necessary data
-            mod_id, pi_name = self.get_mod_id_pi_name()
-            updated_values = self.update_values()
+                # Retrieve necessary data
+                mod_id, pi_name = self.get_mod_id_pi_name()
+                updated_values = self.update_values()
 
-            print(f"Retrieved mod_id: {mod_id}")
-            print(f"PI name: {pi_name}")
-            print(f"Updated values for PDF fields: {updated_values}")
+                print(f"Retrieved mod_id: {mod_id}")
+                print(f"PI name: {pi_name}")
+                print(f"Updated values for PDF fields: {updated_values}")
 
-            # Template path
-            template_path = "./assets/extension_review_matrix.pdf"
-            st.write(f"Reading PDF template from: {template_path}")
-            print(f"Reading PDF template from {template_path}")
+                # Template path
+                template_path = "./assets/extension_review_matrix.pdf"
+                # st.write(f"Reading PDF template from: {template_path}")
+                print(f"Reading PDF template from {template_path}")
 
-            # Use a 'with' block so file remains open while we're working with PyPDF2
-            with open(template_path, "rb") as template_file:
-                pdf_template = PdfReader(template_file)
-                writer = PdfWriter()
+                # Use a 'with' block so file remains open while we're working with PyPDF2
+                with open(template_path, "rb") as template_file:
+                    pdf_template = PdfReader(template_file)
+                    writer = PdfWriter()
 
-                # Update and add each page within the same 'with' block
-                for idx, page in enumerate(pdf_template.pages):
-                    print(f"Processing page {idx + 1} of {len(pdf_template.pages)}...")
+                    # Update and add each page within the same 'with' block
+                    for idx, page in enumerate(pdf_template.pages):
+                        print(f"Processing page {idx + 1} of {len(pdf_template.pages)}...")
 
-                    for key, pdf_field_name in self.fields_map_pdf.items():
-                        if pdf_field_name:
-                            value_to_update = updated_values.get(key, "")
-                            print(
-                                f"Updating field '{pdf_field_name}' with value '{value_to_update}'"
-                            )
-                            writer.update_page_form_field_values(
-                                page, {pdf_field_name: value_to_update}
-                            )
+                        for key, pdf_field_name in self.fields_map_pdf.items():
+                            if pdf_field_name:
+                                value_to_update = updated_values.get(key, "")
+                                print(
+                                    f"Updating field '{pdf_field_name}' with value '{value_to_update}'"
+                                )
+                                writer.update_page_form_field_values(
+                                    page, {pdf_field_name: value_to_update}
+                                )
 
-                    # After updating, add the page to the writer
-                    writer.add_page(page)
+                        # After updating, add the page to the writer
+                        writer.add_page(page)
 
-                # Once all pages are updated, generate the output filename
-                filename = (
-                    f"./assets/Extension_Review_Matrix_{pi_name}_"
-                    f"{mod_id}_{datetime.now().strftime('%Y-%m-%d')}.pdf"
-                )
+                    # Once all pages are updated, generate the output filename
+                    filename = (
+                        f"./assets/Review_Matrix_{pi_name.replace(", ", "_")}_"
+                        f"{mod_id}_{datetime.now().strftime('%Y-%m-%d')}.pdf"
+                    )
 
-                st.write(f"Writing filled PDF to: {filename}")
-                print(f"Writing filled PDF to: {filename}")
+                    # st.write(f"Writing filled PDF to: {filename}")
+                    print(f"Writing filled PDF to: {filename}")
 
-                with open(filename, "wb") as output_file:
-                    writer.write(output_file)
+                    with open(filename, "wb") as output_file:
+                        writer.write(output_file)
 
-            st.success(f"Your PDF has been created and saved as: {filename}")
-            print("PDF creation completed successfully.")
+                st.success(f"Your PDF has been created and saved as: {filename}")
+                # print("PDF creation completed successfully.")
+
+                # st.button(
+                #     "Click here to continue",
+                #     key="ContinueButton",
+                #     on_click=self.change_page("landing"),
+                # )
 
         except Exception as e:
             print(f"An error occurred: {e}")
             st.error(f"An error occurred while creating the PDF: {e}")
 
-        st.button(
-            "Click here to continue",
-            key="ContinueButton",
-            on_click=self.change_page("landing"),
-        )
+
 
     def run_app(self):
-        mod_id = self.get_mod_id()
+        mod_id, pi_name = self.get_mod_id_pi_name()
         try:
             response = requests.get(
                 "http://localhost:8000/run", params={"mod_id": mod_id}
