@@ -7,6 +7,7 @@ import numpy as np
 
 from libs.sharepoint_connector import SharepointConnector
 from libs.sql_connector import SQLConnector
+from utils.path_utils import get_project_root
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class ERMAutofiller:
     SHORT_LINK = os.getenv("EXTENSION_FORMS_SHORT_LINK")
 
     # Path to RAD query
-    RAD_QUERY_FILE = "./sql/nonprod_rad.sql"
+    RAD_QUERY_FILE = os.path.join(get_project_root(), "sql" ,"nonprod_rad.sql")
 
     # Shared constants and flags
     NA_FLAG = "AUTOMATED RESPONSE CURRENTLY UNAVAILABLE"
@@ -73,7 +74,7 @@ class ERMAutofiller:
             df_sharepoint = (
                 sharepoint_connector.read_local_csv()
             )
-            
+
         df_sharepoint_clean = self.process_extension_forms(
             df_sharepoint, df_rad.loc[0, "AwardNumber"]
         )

@@ -95,9 +95,10 @@ async def run(
     mod_id: str,
     sql_connector: SQLConnector = Depends(get_sql_connector),
     sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector),
+    env=env
 ) -> Dict[str, str]:
     try:
-        erm_autofiller = ERMAutofiller(mod_id, sql_connector, sharepoint_connector)
+        erm_autofiller = ERMAutofiller(mod_id, env, sql_connector, sharepoint_connector)
         erm_autofiller.autofill()
         print(erm_autofiller.to_json())
         return {"Data": erm_autofiller.to_json(), "Status": "200"}

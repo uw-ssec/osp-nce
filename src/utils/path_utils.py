@@ -1,8 +1,10 @@
 from pathlib import Path
+import os
 
 def get_project_root() -> Path:
     """Return the root directory of the project."""
-    return Path(__file__).resolve().parent.parent
+    current_dir = os.path.abspath(os.path.dirname(__file__))
+    return os.path.abspath(os.path.join(current_dir, "../../"))
 
 def get_queries_dir() -> Path:
     """Return the path to the sql directory."""

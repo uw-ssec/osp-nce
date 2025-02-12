@@ -4,6 +4,8 @@ from io import BytesIO
 import msal
 import pandas as pd
 import requests
+from utils.path_utils import get_project_root
+import os
 
 
 class SharepointConnector:
@@ -37,10 +39,56 @@ class SharepointConnector:
         self.tenant_id = tenant_id
         self.scopes = scopes
         self.authority = f"https://login.microsoftonline.com/{self.tenant_id}"
-        self.local_file_name = "../../assets/Extensions(Extension request responses).csv"
+        self.local_file_name = os.path.join(get_project_root(), "assets/Extensions.xlsx")
         self._access_token = None
         self._flow = None
         self._app = None
+        self.column_names = [
+            "ID",
+            "StartTime",
+            "CompletionTime",
+            "Email",
+            "Name",
+            "Question",
+            "YourName",
+            "YourName2",
+            "YourEmail",
+            "PIName",
+            "UWAwardNumber",
+            "IsRemainingBalanceMoreThan25Percent",
+            "ExplanationForRemainingBalance",
+            "RequestedEndDate",
+            "isTemporaryExtensionRequest",
+            "IsAwardInDeficit",
+            "DeficitExplanation",
+            "AlternativeNonSponsoredDepartmentalWorktag",
+            "allDeliverablesSubmitted",
+            "isNIH2PlusExtension",
+            "WillPIMaintainMeasurableEffort",
+            "ContinuingHumanSubjectsResearch",
+            "CurrentIRBProtocolNumber",
+            "IRBLocation",
+            "IRBExpirationDate",
+            "CurrentIRBProtocolNumber2",
+            "IRBExpirationDate2",
+            "IRBLocation2",
+            "CurrentIRBProtocolNumber3",
+            "AnimalResearchDone",
+            "CurrentIACUCProtocolNumber",
+            "IACUCExpirationDate",
+            "CurrentIACUCProtocolNumber2",
+            "IACUCExpirationDate2",
+            "CurrentIACUCProtocolNumber3",
+            "IACUCExpirationDate3",
+            "CurrentIRBProtocolNumber4",
+            "IRBLocation3",
+            "IRBExpirationDate3",
+            "isNewCostShare",
+            "AdditionalComments",
+            "AdditionalIRBProtocols",
+            "AdditionalIRBProtocolDetails",
+            "AdditionalIACUCProtocolDetails",
+        ]
 
     def prompt_user(self):
         """
@@ -268,60 +316,16 @@ class SharepointConnector:
         Returns:
             pandas.DataFrame: Parsed extension forms, up to date. 
         """
-        column_names = [
-            "ID",
-            "StartTime",
-            "CompletionTime",
-            "Email",
-            "Name",
-            "Question",
-            "YourName",
-            "YourName2",
-            "YourEmail",
-            "PIName",
-            "UWAwardNumber",
-            "IsRemainingBalanceMoreThan25Percent",
-            "ExplanationForRemainingBalance",
-            "RequestedEndDate",
-            "isTemporaryExtensionRequest",
-            "IsAwardInDeficit",
-            "DeficitExplanation",
-            "AlternativeNonSponsoredDepartmentalWorktag",
-            "allDeliverablesSubmitted",
-            "isNIH2PlusExtension",
-            "WillPIMaintainMeasurableEffort",
-            "ContinuingHumanSubjectsResearch",
-            "CurrentIRBProtocolNumber",
-            "IRBLocation",
-            "IRBExpirationDate",
-            "CurrentIRBProtocolNumber2",
-            "IRBExpirationDate2",
-            "IRBLocation2",
-            "CurrentIRBProtocolNumber3",
-            "AnimalResearchDone",
-            "CurrentIACUCProtocolNumber",
-            "IACUCExpirationDate",
-            "CurrentIACUCProtocolNumber2",
-            "IACUCExpirationDate2",
-            "CurrentIACUCProtocolNumber3",
-            "IACUCExpirationDate3",
-            "CurrentIRBProtocolNumber4",
-            "IRBLocation3",
-            "IRBExpirationDate3",
-            "isNewCostShare",
-            "AdditionalComments",
-            "AdditionalIRBProtocols",
-            "AdditionalIRBProtocolDetails",
-            "AdditionalIACUCProtocolDetails",
-        ]
         df_forms_raw = self.read_excel_from_short_link(
             short_link,
             header=None,
             skiprows=2,
-            names=column_names,
+            names=self.column_names,
         )
         return df_forms_raw
     
     def read_local_csv(self):
-        df_forms_raw = pd.read_csv(self.local_file_name)
+        df_forms_raw = pd.read_excel(self.local_file_name,
+                   header = 1,
+                   names = self.column_names)
         return df_forms_raw

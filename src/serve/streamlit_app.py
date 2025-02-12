@@ -293,7 +293,7 @@ class StreamLitApp:
         )
 
     def run_app(self):
-        mod_id = self.get_mod_id()
+        pi_name, mod_id = self.get_mod_id_pi_name()
         try:
             response = requests.get(
                 "http://localhost:8000/run", params={"mod_id": mod_id}
