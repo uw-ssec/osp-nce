@@ -5,8 +5,8 @@ import logging
 import pandas as pd
 import numpy as np
 
-from libs.sharepoint_connector import SharepointConnector
-from libs.sql_connector import SQLConnector
+from src.libs.sharepoint_connector import SharepointConnector
+from src.libs.sql_connector import SQLConnector
 
 # Setup logging
 logger = logging.getLogger(__name__)
