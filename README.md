@@ -25,4 +25,4 @@ Then, in the project root
 Once this has been done you now have an image of this directory!
 
 To set off a container with this image use:
-`docker run -p 8000:8000 -p 8501:8501 :{your_docker_image_name}`
+`docker run -p 8000:8000 -p 8501:8501 {your_docker_image_name}`
