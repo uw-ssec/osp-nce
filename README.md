@@ -8,3 +8,21 @@ The University of Washington's Office of Sponsored Programs (OSP) works with UW 
 ### Goals
 
 The goal of this project is to **establish proof of concept for process automations aimed at streamlining Program Coordinators' NCE review process.** When this project began, PCs worked from a blank copy of the Extension Review Matrix form during each review. While some items on the form require careful assessment and consideration by PCs, others are straightforward and objective attributes of the grant which is under review. Prior to this project, PCs had to look up the answer to each review item on the ERM individually. After the automations are completed, PCs will start their workflow with a **partially pre-filled version of the extension review matrix.**
+
+## Getting Started 
+
+First you need to install the docker CLI 
+on mac: 
+brew install docker 
+
+on windows:
+Good luck.
+
+Look here for more info: [link](https://www.docker.com/get-started/)
+
+Then, in the project root 
+`docker build -t {your_docker_image_name} .`
+Once this has been done you now have an image of this directory!
+
+To set off a container with this image use:
+`docker run {your_docker_image_name}`

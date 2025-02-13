@@ -3,9 +3,9 @@ import uvicorn
 import os
 import logging
 
-from libs.sql_connector import SQLConnector
-from libs.sharepoint_connector import SharepointConnector
-from libs.erm_autofiller import ERMAutofiller
+from src.libs.sql_connector import SQLConnector
+from src.libs.sharepoint_connector import SharepointConnector
+from src.libs.erm_autofiller import ERMAutofiller
 import streamlit as st
 from typing import Dict
 from datetime import datetime

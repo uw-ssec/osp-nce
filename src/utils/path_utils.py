@@ -1,21 +1,22 @@
 from pathlib import Path
+from os import os
 
-def get_project_root() -> Path:
+def get_project_root() -> str:
     """Return the root directory of the project."""
-    return Path(__file__).resolve().parent.parent
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
-def get_queries_dir() -> Path:
+def get_queries_dir() -> str:
     """Return the path to the sql directory."""
-    return get_project_root().joinpath("sql")
+    return os.path.join(get_project_root(), "sql")
 
-def get_data_dir() -> Path:
+def get_data_dir() -> str:
     """Return the path to the data directory."""
-    return get_project_root().joinpath("data")
+    return os.path.join(get_project_root(), "data")
 
-def get_query_path(query_name: str) -> Path:
+def get_query_path(query_name: str) -> str:
     """Return the full path to a query file given its name."""
-    return get_queries_dir().joinpath(query_name)
+    return os.path.join(get_queries_dir(), query_name)
 
-def get_data_path(data_file: str) -> Path:
+def get_data_path(data_file: str) -> str:
     """Return the full path of a data file given its name."""
-    return get_data_dir().joinpath(data_file)
+    return os.path.join(get_data_dir(), data_file)
