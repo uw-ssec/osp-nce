@@ -1,9 +1,11 @@
-import streamlit as st
 import json
+from datetime import datetime
+from io import BytesIO
+
+import streamlit as st
 import pandas as pd
 import requests
 from PyPDF2 import PdfReader, PdfWriter
-from datetime import datetime
 
 
 class StreamLitApp:
@@ -76,23 +78,22 @@ class StreamLitApp:
             "ri17": "All deliverables  submitted",
             "review_notes": "Review Notes",
         }
-        st.set_page_config(layout="wide")
-        # self.container = st.empty()
+    st.set_page_config(
+        page_title="GRACE",
+        page_icon=":robot_face:",
+        layout="wide",
+        initial_sidebar_state="expanded",
+        menu_items={
+            "About": "# A streamlined approach to grant extension reviewing.",
+            "Report a bug": "https://github.com/uw-ssec/osp-nce/issues",
+        },
+    )
 
     #
     # --------------------- NAVIGATION & PAGE MANAGEMENT ---------------------
     #
-    def change_page(self, page: str) -> None:
-        """Changes the current page in session state and reruns the Streamlit app."""
-        if page not in ["auth", "landing", "query"]:
-            raise ValueError(
-                f"Invalid page: {page}. Must be one of 'auth', 'landing', or 'query'."
-            )
-        st.session_state["current_page"] = page
-        # st.rerun()
-
     def run(self) -> None:
-        """Entry point for the StreamLitApp. Manages which page to display."""
+        """Entry point for app that manages which page to display."""
         current_page = st.session_state.get("current_page", "")
         if not current_page:
             current_page = "auth"
@@ -105,20 +106,42 @@ class StreamLitApp:
         elif current_page == "query":
             self.instantiate_query_page()
 
+    # TODO: We can use st.navigation for this
+    def change_page(self, page: str) -> None:
+        """Changes the current page in session state and reruns the app."""
+        if page not in ["auth", "landing", "query"]:
+            raise ValueError(
+                f"Invalid page: {page}. Must be one of 'auth', 'landing', or 'query'."
+            )
+        st.session_state["current_page"] = page
+
     #
     # --------------------- UTILITY METHODS ---------------------
     #
-    def get_mod_id_pi_name(self):
-        return st.session_state.get("mod_id", ""), st.session_state.get("pi_name", "")
-
     def get_curr_mod(self) -> str:
         return st.session_state.get("curr_mod", "")
+
+    def get_curr_pi_name(self) -> str:
+        curr_vals = st.session_state.get("curr_vals", {})
+        return curr_vals.get("pi_name", "").get("val", "")
+    
+    def get_curr_filename(self) -> str:
+        mod_id = self.get_curr_mod()
+        pi_name = self.get_curr_pi_name()
+        return (
+                f"Review_Matrix_{pi_name.replace(',', '_')}_{mod_id}_"
+                f"{datetime.now().strftime('%Y-%m-%d')}.pdf"
+            )
 
     #
     # --------------------- AUTH PAGE ---------------------
     #
     def get_mfa_message(self) -> None:
-        """Get the device flow link and code from the FastAPI backend."""
+        """
+        Request a device flow link and code from the FastAPI backend.
+
+        If the request is successful, flag the "Proceed" button to appear.
+        """
         try:
             response = requests.get("http://backend:8000/prompt_azure_mfa/")
             if response.status_code == 200:
@@ -126,22 +149,24 @@ class StreamLitApp:
                 st.session_state["auth_message"] = body.get("auth_message", "")
                 st.session_state["show_proceed"] = True
             else:
-                st.error(f"Request for MFA failed. Status code {response.status_code}")
+                st.error(
+                    f"Request for atuh code failed. Status code {response.status_code}"
+                )
         except requests.RequestException as e:
-            st.error(f"Failed to contact MFA server: {e}")
+            st.error(f"Failed to contact server: {e}")
 
     def get_user_auth(self) -> None:
-        """Retrieve the user's access token after MFA."""
+        """Retrieve the user's access token after device flow authentication."""
         try:
             response = requests.get("http://backend:8000/acquire_access_token/")
             if response.status_code == 200:
-                self.change_page("landing")
+                self.change_page("landing")  # Includes the "Proceed" button
             else:
                 st.error(
                     f"Request for token failed. Status code {response.status_code}"
                 )
         except requests.RequestException as e:
-            st.error(f"Failed to contact MFA server: {e}")
+            st.error(f"Failed to contact server: {e}")
 
     def instantiate_auth_page(self) -> None:
         """Displays the authentication page."""
@@ -149,7 +174,7 @@ class StreamLitApp:
         with placeholder.container():
             st.title("Authenticate for blah")
             st.button(
-                "Authenticate With 2FA",
+                "Get Login Code",
                 key="authenticate",
                 on_click=self.get_mfa_message,
             )
@@ -172,110 +197,140 @@ class StreamLitApp:
         placeholder = st.empty()
         with placeholder.container():
             st.title("Editable Form - Extension Review Matrix")
-            st.subheader("Identifying Information")
+            st.subheader("Enter a MOD ID to Prefill the Review Matrix")
             st.text_input("MOD/Worktag ID:", value="", key="curr_mod")
-            st.button("Proceed", key="ProceedButtonLanding", on_click=self.run_app)
+            st.button("Proceed", key="ProceedButtonLanding", on_click=self.fetch_autofill)
 
     #
     # --------------------- QUERY PAGE ---------------------
     #
     def instantiate_query_page(self) -> None:
-        """Displays the query page with update, download, and autofill restore functions."""
+        """
+        Displays the query page with update, download, and restore functions.
+
+        The values displayed are pulled from "curr_vals" in state, which reflect
+        the most recent user edits
+        """
         placeholder = st.empty()
         data = st.session_state.get("curr_vals", {})
 
         with placeholder.container():
-            st.title("Extension Review Matrix")
-
-            # Prefill text boxes with session state data
-            col_left, col_right = st.columns(2)
-            with col_left:
-                st.text_input(
-                    "MOD/Worktag ID:",
-                    value=data.get("mod_id", {}).get("val", ""),
-                    key="mod_id_query",
-                )
-            with col_right:
-                st.text_input(
-                    "PI Name:",
-                    value=data.get("pi_name", {}).get("val", ""),
-                    key="pi_name",
-                )
-
+            st.title("Editable Form - Extension Review Matrix")
+            self._show_basic_info_fields(data)
             if data.get("mod_id", {}).get("val", ""):
-                # st.subheader("Edit the fields below")
-                fields_in_order = [field for field in self.fields_map if field != "review_notes"]
+                self._show_review_fields(data)
+                self._show_review_notes(data)
+            self._show_utility_buttons()
 
-                
-                # Create a row of headings
-                col1, col2, col3 = st.columns([2, 1, 2])
-                with col1:
-                    st.subheader("**Review Items**")
-                with col2:
-                    st.subheader("**Action**")
-                with col3:
-                    st.subheader("**Notes**")
+    def _show_basic_info_fields(self, data: dict) -> None:
+        """Displays the MOD/Worktag ID and PI Name fields."""
+        col_left, col_right = st.columns(2)
+        with col_left:
+            st.text_input(
+                "MOD/Worktag ID:",
+                value=data.get("mod_id", {}).get("val", ""),
+                key="mod_id_form",
+            )
+        with col_right:
+            st.text_input(
+                "PI Name:",
+                value=data.get("pi_name", {}).get("val", ""),
+                key="pi_name_form",
+            )
 
-                # Display all fields except review_notes
-                for ri_field in fields_in_order:
-                    field_label = self.fields_map[ri_field]
-                    col1, col2, col3 = st.columns([2, 1, 2])
-                    with col1:
-                        st.text_input(
-                            field_label,
-                            value=data.get(ri_field, {}).get("val", ""),
-                            key=ri_field,
-                        )
-                    with col2:
-                        helper_text = self.fields.get(field_label, "")
-                        if helper_text:
-                            st.caption(helper_text)
-                    with col3:
-                        st.text_area(
-                            f"Notes ({field_label})",
-                            value=data.get(ri_field, {}).get("notes", ""),
-                            key=f"{ri_field}_notes",
-                            height=100,
-                        )
+    def _show_review_fields(self, data: dict) -> None:
+        """Displays the fields except the 'review_notes' entry."""
+        fields_in_order = [
+            field for field in self.fields_map if field != "review_notes"
+        ]
 
-                # Now display the review notes at the bottom
-                review_key = "review_notes"
-                if review_key in self.fields_map:
-                    st.subheader("Review Notes")
-                    st.text_area(
-                        label=" ",
-                        value=data.get(review_key, {}).get("val", ""),
-                        key=review_key,
-                        height=300
-                    )
+        col1, col2, col3 = st.columns([2, 1, 2])
+        with col1:
+            st.subheader("**Review Items**")
+        with col2:
+            st.subheader("**Action**")
+        with col3:
+            st.subheader("**Notes**")
 
-            # Utility buttons
-            with st.sidebar:
-                st.button(
-                    "Update Values", key="UpdateButton", on_click=self.update_values
+        for ri_field in fields_in_order:
+            field_label = self.fields_map[ri_field]
+            col1, col2, col3 = st.columns([2, 1, 2])
+            with col1:
+                st.text_input(
+                    field_label,
+                    value=data.get(ri_field, {}).get("val", ""),
+                    key=ri_field,
                 )
-                st.button(
-                    "Download PDF",
-                    key="DownloadPDFButton",
-                    on_click=self.download_prefilled_pdf,
+            with col2:
+                helper_text = self.fields.get(field_label, "")
+                if helper_text:
+                    st.caption(helper_text)
+            with col3:
+                st.text_area(
+                    f"Notes ({field_label})",
+                    value=data.get(ri_field, {}).get("notes", ""),
+                    key=f"{ri_field}_notes",
+                    height=100,
                 )
-                st.button(
-                    "Restore Autofill",
-                    key="RestoreAutofiller",
-                    on_click=self.restore_autofiller_responses,
-                )
-                st.button("New Mod", key="NewMod", on_click=self.new_mod)
+
+    def _show_review_notes(self, data: dict) -> None:
+        """Displays the 'review_notes' field at the bottom."""
+        review_key = "review_notes"
+        if review_key in self.fields_map:
+            st.subheader("Review Notes")
+            st.text_area(
+                label=" ",
+                value=data.get(review_key, {}).get("val", ""),
+                key=review_key,
+                height=300,
+            )
+
+    def _show_utility_buttons(self) -> None:
+        """Displays sidebar buttons for update, download, restore, and new mod."""
+        with st.sidebar:
+            st.markdown("### Toolbar")
+            st.write("*Below you'll find options to update or reset your form data.*")
+            st.button(
+                "Save Edits",
+                key="UpdateButton",
+                on_click=self.update_values,
+                help="Save your current edits.",
+                use_container_width=True
+            )
+            st.download_button(
+                "Download PDF",
+                data=st.session_state["curr_pdf_bytes"],
+                file_name=self.get_curr_filename(),
+                key="DownloadPDFButton",
+                help="Generate and download a filled-out PDF form based on your last save.",
+                use_container_width=True
+            )
+            st.button(
+                "Restore Autofill",
+                key="RestoreAutofiller",
+                on_click=self.restore_autofiller_responses,
+                help="Undo any changes you've made and revert to the original autofilled responses.",
+                use_container_width=True
+            )
+            st.button(
+                "New Mod",
+                key="NewMod",
+                on_click=self.new_mod,
+                help="Return to the landing page to enter a different MOD/Worktag ID.",
+                use_container_width=True
+            )
 
     def new_mod(self) -> None:
         """Switch back to landing page."""
+        # TODO: Reset the state before transition
         self.change_page("landing")
 
     def restore_autofiller_responses(self) -> None:
         """Revert to original autofiller responses."""
-        print(st.session_state["curr_vals"])
-        print(st.session_state["autofilled_vals"])
+        # print(st.session_state["curr_vals"])
+        # print(st.session_state["autofilled_vals"])
         st.session_state["curr_vals"] = st.session_state.get("autofilled_vals", {})
-        # st.rerun()
+        st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
 
     def update_values(self) -> None:
         """
@@ -291,55 +346,51 @@ class StreamLitApp:
             }
 
         st.session_state["curr_vals"] = updated
+        st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes() 
         st.session_state["page"] = "query"
-        # st.rerun()
 
     #
     # --------------------- PDF DOWNLOAD ---------------------
     #
-    def download_prefilled_pdf(self) -> None:
-        """Create and save a new PDF containing the updated values."""
+    def fill_pdf_to_bytes(self) -> bytes:
+        """Create and return a new PDF containing the updated values as bytes."""
         try:
-            with st.empty() as container:
-                st.info("Starting the PDF creation process...")
-                mod_id, pi_name = self.get_mod_id_pi_name()
-                updated = st.session_state.get("curr_vals", {})
-                template_path = "./assets/extension_review_matrix.pdf"
+            updated = st.session_state.get("curr_vals", {})
+            template_path = "./assets/extension_review_matrix.pdf"
+            if not updated:
+                raise ValueError("'curr_vals' missing from state.")
 
-                with open(template_path, "rb") as template_file:
-                    pdf_template = PdfReader(template_file)
-                    writer = PdfWriter()
+            with open(template_path, "rb") as template_file:
+                pdf_template = PdfReader(template_file)
+                writer = PdfWriter()
 
-                    for idx, page in enumerate(pdf_template.pages):
-                        for key, field_name in self.fields_map_pdf.items():
-                            if field_name:
-                                val = updated.get(key, {}).get("val", "")
-                                writer.update_page_form_field_values(
-                                    page, {field_name: val}
-                                )
-                        writer.add_page(page)
+                for idx, page in enumerate(pdf_template.pages):
+                    for key, field_name in self.fields_map_pdf.items():
+                        if field_name:
+                            val = updated.get(key, {}).get("val", "")
+                            writer.update_page_form_field_values(page, {field_name: val})
+                    writer.add_page(page)
 
-                filename = (
-                    f"./data/Review_Matrix_{pi_name.replace(',', '_')}_{mod_id}_"
-                    f"{datetime.now().strftime('%Y-%m-%d')}.pdf"
-                )
-                with open(filename, "wb") as output_file:
-                    writer.write(output_file)
+            pdf_bytes = BytesIO()
+            writer.write(pdf_bytes)
+            pdf_bytes.seek(0)
 
-                st.success(f"Your PDF has been created and saved as: {filename}")
+            return pdf_bytes.getvalue()
 
         except Exception as e:
             st.error(f"An error occurred while creating the PDF: {e}")
+            return b""
 
     #
     # --------------------- SERVER REQUEST ---------------------
     #
-    def run_app(self) -> None:
+    def fetch_autofill(self) -> None:
         """
-        Get the autofiller responses from the backend, store them in session state,
+        Get the autofiller responses from the backend, store them in state, and
         then go to the query page.
         """
         mod_id = self.get_curr_mod()
+        # TODO: Clean/Validate the user inputted mod_id before passing to backend
         try:
             response = requests.get(
                 "http://backend:8000/run", params={"mod_id": mod_id}
@@ -353,6 +404,7 @@ class StreamLitApp:
                         return
                     st.session_state["autofilled_vals"] = data
                     st.session_state["curr_vals"] = data.copy()
+                    st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes() # Requires curr_vals in state
                     self.change_page("query")
                 except (json.JSONDecodeError, TypeError) as e:
                     st.error(f"Error processing data: {e}")
