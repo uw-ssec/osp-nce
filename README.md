@@ -15,6 +15,8 @@ First you need to install the docker CLI
 on mac: 
 brew install docker 
 
+(Note: if you encounter errors running the commands below, you may also need to install [Docker Desktop])(https://www.docker.com/products/docker-desktop/))
+
 on windows:
 Good luck.
 
@@ -25,4 +27,4 @@ Then, in the project root
 Once this has been done you now have an image of this directory!
 
 To set off a container with this image use:
-`docker run {your_docker_image_name}`
+`docker run -p 8000:8000 -p 8501:8501 {your_docker_image_name}`
