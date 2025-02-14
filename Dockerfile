@@ -1,20 +1,7 @@
-FROM python:3.13-slim
-
-# Set environment variables to avoid prompts
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=off
-ENV PIP_DISABLE_PIP_VERSION_CHECK=on
-
-# Set working directory
+# Base
+FROM python:3.13-slim AS base
 WORKDIR /app
-
-# Copy project files into the container
-COPY . /app
-
-# Copy .env file
-COPY .env /app/.env
-
-# Install system dependencies
+COPY pyproject.toml poetry.lock ./
 RUN apt-get update && apt-get install -y \
     curl \
     gcc \
@@ -22,16 +9,18 @@ RUN apt-get update && apt-get install -y \
     freetds-bin \
     unixodbc-dev \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
-
-# Install dependencies
 RUN poetry install --no-root
+RUN poetry cache clear --all pypi
+ENV PYTHONUNBUFFERED=1
 
-# Expose ports
-EXPOSE 8000 8501
+# Frontend
+FROM base AS streamlit
+EXPOSE 8501
+CMD ["poetry", "run", "streamlit", "run", "./src/frontend/app.py", "--server.port", "8501"]
 
-# Run FastAPI 
-CMD ["bash", "-c", "poetry run uvicorn src.serve.wsgi:app --host 0.0.0.0 --port 8000 & poetry run streamlit run src/serve/streamlit_app.py --server.port 8501"]
+# Backend
+FROM base AS fastapi
+EXPOSE 8000
+CMD ["poetry", "run", "uvicorn", "src.backend.wsgi:app", "--host", "0.0.0.0", "--port", "8000"]

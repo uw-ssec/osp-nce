@@ -1,0 +1,68 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src/backend:/app/src/backend
+      - ./src/shared:/app/src/shared
+      - ./src/sql:/app/src/sql
+    env_file:
+      - ./.env
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src/frontend:/app/src/frontend
+      - ./src/shared:/app/src/shared
+      - ./assets:/app/assets
+    env_file:
+      - ./.env
+    depends_on:
+      - backend
+
+
+# services:
+#   frontend:
+#     build:
+#       context: . # Context is the directory containing this compose file
+#       dockerfile: src/frontend/Dockerfile
+#     container_name: frontend
+#     volumes:
+#       - ./src/frontend:/app/src/frontend    # Live updates for frontend
+#       - ./src/shared:/app/src/shared        # Live updates for shared code
+#       - ./assets:/app/assets                # Live updates for assets
+#     ports:
+#       - "8501:8501"
+#     environment:
+#       - PYTHONUNBUFFERED=1
+#     env_file:
+#       - ./.env
+#     depends_on:
+#       - backend
+
+#   backend:
+#     build:
+#       context: .
+#       dockerfile: ./src/backend/Dockerfile
+#     container_name: backend
+#     volumes:
+#       - ./src/backend:/app/src/backend    # Live updates for backend
+#       - ./src/shared:/app/shared          # Live updates for shared code
+#       - ./src/sql:/app/src/sql            # Live updates for sql 
+#     ports:
+#       - "8000:8000"
+#     environment:
+#       - PYTHONUNBUFFERED=1
+#     env_file:
+#       - ./.env
+
+
+

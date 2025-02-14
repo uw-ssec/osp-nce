@@ -2,6 +2,7 @@
 
 # Get the directory of the current script
 SCRIPT_DIR=$(dirname "$0")
+
 # Define project paths
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 

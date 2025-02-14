@@ -1,9 +1,10 @@
 [project]
 name = "osp-nce"
 version = "0.1.0"
-description = ""
+description = "Extemsion review automation tool for the UW Office of Sponsored Programs."
 authors = [
-    {name = "SidGurajala",email = "sgurajala99@gmail.com"}
+    {name = "Sid Gurajala", email = "sgurajala99@gmail.com"},
+    {name = "Edoouard Seryozhenkov", email="edouas@uw.edu"},
 ]
 readme = "README.md"
 requires-python = ">=3.13,<4"
@@ -21,7 +22,6 @@ dependencies = [
     "openpyxl (>=3.1.5,<4.0.0)",
     "numpy (>=2.2.2,<3.0.0)"
 ]
-
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -120,7 +120,7 @@ class StreamLitApp:
     def get_mfa_message(self) -> None:
         """Get the device flow link and code from the FastAPI backend."""
         try:
-            response = requests.get("http://localhost:8000/prompt_azure_mfa/")
+            response = requests.get("http://backend:8000/prompt_azure_mfa/")
             if response.status_code == 200:
                 body = response.json()
                 st.session_state["auth_message"] = body.get("auth_message", "")
@@ -133,7 +133,7 @@ class StreamLitApp:
     def get_user_auth(self) -> None:
         """Retrieve the user's access token after MFA."""
         try:
-            response = requests.get("http://localhost:8000/acquire_access_token/")
+            response = requests.get("http://backend:8000/acquire_access_token/")
             if response.status_code == 200:
                 self.change_page("landing")
             else:
@@ -147,7 +147,7 @@ class StreamLitApp:
         """Displays the authentication page."""
         placeholder = st.empty()
         with placeholder.container():
-            st.title("Authenticate for Sharepoint")
+            st.title("Authenticate for blah")
             st.button(
                 "Authenticate With 2FA",
                 key="authenticate",
@@ -342,7 +342,7 @@ class StreamLitApp:
         mod_id = self.get_curr_mod()
         try:
             response = requests.get(
-                "http://localhost:8000/run", params={"mod_id": mod_id}
+                "http://backend:8000/run", params={"mod_id": mod_id}
             )
             if response.status_code == 200:
                 try:
