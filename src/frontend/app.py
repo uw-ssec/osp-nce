@@ -172,7 +172,7 @@ class StreamLitApp:
         """Displays the authentication page."""
         placeholder = st.empty()
         with placeholder.container():
-            st.title("Authenticate for blah")
+            st.title("Login to use the App")
             st.button(
                 "Get Login Code",
                 key="authenticate",
