@@ -172,9 +172,9 @@ class StreamLitApp:
         """Displays the authentication page."""
         placeholder = st.empty()
         with placeholder.container():
-            st.title("Login to use the App")
+            st.title("Get your Login Code to Start Automatic Form-Filling.")
             st.button(
-                "Get Login Code",
+                "Get Code",
                 key="authenticate",
                 on_click=self.get_mfa_message,
             )

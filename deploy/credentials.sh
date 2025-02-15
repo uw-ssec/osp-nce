@@ -55,7 +55,7 @@ chmod 644 $PROJECT_ROOT/.env
 
 # Save environment variables to .env file
 cat <<EOF > "$PROJECT_ROOT/.env"
-RAD_USER="netid\\edouas"
+RAD_USER="$RAD_USER"
 RAD_PASSWORD=$RAD_PASSWORD
 RAD_SERVER=$RAD_SERVER
 RAD_DATABASE=$RAD_DATABASE
