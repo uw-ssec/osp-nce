@@ -80,4 +80,3 @@ class SQLConnector:
 
         with self.engine.connect() as connection:
             return pd.read_sql(query, con=connection, params=params)
-
