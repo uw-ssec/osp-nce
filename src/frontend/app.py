@@ -143,7 +143,7 @@ class StreamLitApp:
         If the request is successful, flag the "Proceed" button to appear.
         """
         try:
-            response = requests.get("http://localhost:8000/prompt_azure_mfa/")
+            response = requests.get("http://backend:8000/prompt_azure_mfa/")
             if response.status_code == 200:
                 body = response.json()
                 st.session_state["auth_message"] = body.get("auth_message", "")
@@ -158,7 +158,7 @@ class StreamLitApp:
     def get_user_auth(self) -> None:
         """Retrieve the user's access token after device flow authentication."""
         try:
-            response = requests.get("http://localhost:8000/acquire_access_token/")
+            response = requests.get("http://backend:8000/acquire_access_token/")
             if response.status_code == 200:
                 self.change_page("landing")  # Includes the "Proceed" button
             else:
@@ -172,9 +172,9 @@ class StreamLitApp:
         """Displays the authentication page."""
         placeholder = st.empty()
         with placeholder.container():
-            st.title("Authenticate for Sharepoint")
+            st.title("Get your Login Code to Start Automatic Form-Filling.")
             st.button(
-                "Get Login Code",
+                "Get Code",
                 key="authenticate",
                 on_click=self.get_mfa_message,
             )
@@ -393,7 +393,7 @@ class StreamLitApp:
         # TODO: Clean/Validate the user inputted mod_id before passing to backend
         try:
             response = requests.get(
-                "http://localhost:8000/run", params={"mod_id": mod_id}
+                "http://backend:8000/run", params={"mod_id": mod_id}
             )
             if response.status_code == 200:
                 try:

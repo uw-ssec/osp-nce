@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src/backend:/app/src/backend
+      - ./src/shared:/app/src/shared
+      - ./src/sql:/app/src/sql
+    env_file:
+      - ./.env
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src/frontend:/app/src/frontend
+      - ./src/shared:/app/src/shared
+      - ./assets:/app/assets
+    env_file:
+      - ./.env
+    depends_on:
+      - backend
