@@ -44,7 +44,7 @@ jobs:
         run: poetry install --no-root
 
       - name: Test with pytest
-        run: pytest
+        run: poetry run pytest
 
   # Integration testing
   # integration:
