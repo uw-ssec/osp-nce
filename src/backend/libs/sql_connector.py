@@ -48,7 +48,8 @@ class SQLConnector:
         self.engine = sqlalchemy.create_engine(connection_url)
 
     def query_from_string(self, sql_query, params=None):
-        """Execute raw SQL with optional parameter binding.
+        """
+        Execute raw SQL with optional parameter binding.
 
         Args:
             sql_query (str): The SQL query to execute. Use the templating format
@@ -63,7 +64,8 @@ class SQLConnector:
             return pd.read_sql(sql_query, con=connection, params=params)
 
     def query_from_file(self, query_path, params=None):
-        """Execute the query at query_path with optional parameter binding.
+        """
+        Execute the query at query_path with optional parameter binding.
 
         Args:
             query_path (str): Filesystem path to the .sql query to execute.
@@ -80,4 +82,3 @@ class SQLConnector:
 
         with self.engine.connect() as connection:
             return pd.read_sql(query, con=connection, params=params)
-
