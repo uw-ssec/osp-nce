@@ -21,7 +21,7 @@ class SharepointConnector:
         access_token (str or None): Current access token to use for requests.
     """
 
-    def __init__(self, client_id, tenant_id, scopes=["Files.Read", "Files.Read.All"]):
+    def __init__(self, client_id, tenant_id, scopes=["Files.Read"]):
         """
         Initialize the connector with the required Azure AD application details.
 
@@ -29,7 +29,7 @@ class SharepointConnector:
             client_id (str): Azure AD client (application) ID.
             tenant_id (str): Azure AD tenant ID (or domain).
             scopes (list[str], optional): List of Graph permissions to request.
-                Defaults to ["Files.Read", "Files.Read.All"] if not provided.
+                Defaults to ["Files.Read"] if not provided.
         """
         self.client_id = client_id
         self.tenant_id = tenant_id

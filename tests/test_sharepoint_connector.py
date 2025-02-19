@@ -26,7 +26,7 @@ def test_initialization(connector):
     """Test that the SharepointConnector initializes correctly."""
     assert connector.client_id == "test_client_id"
     assert connector.tenant_id == "test_tenant_id"
-    assert "Files.Read.All" in connector.scopes
+    assert "Files.Read" in connector.scopes
     assert connector.authority == "https://login.microsoftonline.com/test_tenant_id"
 
 
