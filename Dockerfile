@@ -13,18 +13,8 @@ RUN apt-get update && apt-get install -y \
     freetds-bin \
     tdsodbc \
     unixodbc-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Define build argument
-ARG RAD_PASSWORD
-
-# Set environment variable
-ENV RAD_PASSWORD=${RAD_PASSWORD}
-
-# Print the RAD_PASSWORD environment variable
-RUN echo "RAD_PASSWORD is: $RAD_PASSWORD"
-
-RUN curl -sSL https://install.python-poetry.org | python3 -
+    && rm -rf /var/lib/apt/lists/* \
+    curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 RUN poetry install --no-root
 RUN poetry cache clear --all pypi

@@ -32,8 +32,6 @@ prompt_for_secret() {
     local prompt_text="$2"
     if [ -z "${!var_name}" ]; then
         read -rsp "$prompt_text: " $var_name
-        echo
-        export $var_name="${!var_name}"
     fi
 }
 
