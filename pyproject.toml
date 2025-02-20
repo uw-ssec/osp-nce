@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "osp-nce"
+name = "ospnce"
 version = "0.1.0"
 description = "Extension review automation tool for the UW Office of Sponsored Programs."
 authors = [
@@ -9,19 +9,20 @@ authors = [
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.13,<4"
+python = ">=3.10, <3.11"
 streamlit = ">=1.41.1,<2.0.0"
 pandas = ">=2.2.3,<3.0.0"
 logger = ">=1.4,<2.0"
 sqlalchemy = ">=2.0.37,<3.0.0"
 fastapi = ">=0.115.6,<0.116.0"
 uvicorn = ">=0.34.0,<0.35.0"
-pymssql = ">=2.3.2,<3.0.0"
+pymssql = "2.2.11"
 pypdf2 = ">=3.0.1,<4.0.0"
 reportlab = ">=4.2.5,<5.0.0"
 msal = ">=1.31.1,<2.0.0"
 openpyxl = ">=3.1.5,<4.0.0"
 numpy = ">=2.2.2,<3.0.0"
+dotenv = "^0.9.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4"
@@ -38,3 +39,6 @@ addopts = "-v"
 
 [tool.black]
 line-length = 88
+
+[installer]
+no-binary = ["pymssql"]
