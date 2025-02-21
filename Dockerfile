@@ -1,15 +1,20 @@
 # Base
-FROM python:3.13-slim AS base
+FROM ubuntu:latest
+FROM python:3.10-slim AS base
 WORKDIR /app
 COPY pyproject.toml poetry.lock ./
+
 RUN apt-get update && apt-get install -y \
     curl \
     gcc \
     libpq-dev \
     freetds-bin \
+    freetds-dev \
+    freetds-bin \
+    tdsodbc \
     unixodbc-dev \
-    && rm -rf /var/lib/apt/lists/*
-RUN curl -sSL https://install.python-poetry.org | python3 -
+    && rm -rf /var/lib/apt/lists/* \
+    curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 RUN poetry install --no-root
 RUN poetry cache clear --all pypi
