@@ -189,17 +189,36 @@ class StreamLitApp:
                     "Proceed", key="ProceedButtonAuth", on_click=self.get_user_auth
                 )
 
-    #
-    # --------------------- LANDING PAGE ---------------------
-    #
+
     def instantiate_landing_page(self) -> None:
         """Displays the landing page for collecting MOD/Worktag ID."""
         placeholder = st.empty()
         with placeholder.container():
             st.title("Editable Form - Extension Review Matrix")
             st.subheader("Enter a MOD ID to Prefill the Review Matrix")
-            st.text_input("MOD/Worktag ID:", value="", key="curr_mod")
-            st.button("Proceed", key="ProceedButtonLanding", on_click=self.fetch_autofill)
+            
+            # Prefill the text input with "MOD"
+            mod_id_input = st.text_input("MOD/Worktag ID:", value="MOD", key="curr_mod_input")
+            
+            # Check for invalid characters and display a warning if necessary
+            if any(char.isalpha() and char.upper() not in "MOD" for char in mod_id_input):
+                st.warning("Please ensure the MOD ID only contains 'MOD' followed by numbers.")
+            
+            # Define a callback function for the "Proceed" button
+            def proceed_callback():
+                # Convert the input to uppercase and ensure it starts with "MOD"
+                mod_id = mod_id_input.upper()
+                if not mod_id.startswith("MOD"):
+                    mod_id = "MOD" + mod_id.lstrip("MOD")
+                
+                # Update the session state with the formatted MOD ID
+                st.session_state["curr_mod"] = mod_id
+                
+                # Call the fetch_autofill method
+                self.fetch_autofill()
+            
+            # Button to proceed with the form submission
+            st.button("Proceed", key="ProceedButtonLanding", on_click=proceed_callback)
 
     #
     # --------------------- QUERY PAGE ---------------------
