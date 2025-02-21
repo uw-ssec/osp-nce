@@ -1,10 +1,12 @@
 [tool.poetry]
-name = "ospnce"
+name = "osp-nce"
 version = "0.1.0"
 description = "Extension review automation tool for the UW Office of Sponsored Programs."
 authors = [
     "Sid Gurajala <sgurajala99@gmail.com>",
-    "Edoouard Seryozhenkov <edouas@uw.edu>"
+    "Edoouard Seryozhenkov <edouas@uw.edu>",
+    "Apoorva Sheera <asheera@uw.edu>",
+    "Daniel Vogler <dvogler@uw.edu>"
 ]
 readme = "README.md"
 
@@ -39,6 +41,3 @@ addopts = "-v"
 
 [tool.black]
 line-length = 88
-
-[installer]
-no-binary = ["pymssql"]
