@@ -409,7 +409,7 @@ class StreamLitApp:
         then go to the query page.
         """
         mod_id = self.get_curr_mod()
-        # TODO: Clean/Validate the user inputted mod_id before passing to backend
+        
         try:
             response = requests.get(
                 "http://backend:8000/run", params={"mod_id": mod_id}
