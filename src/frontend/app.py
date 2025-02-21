@@ -124,14 +124,14 @@ class StreamLitApp:
     def get_curr_pi_name(self) -> str:
         curr_vals = st.session_state.get("curr_vals", {})
         return curr_vals.get("pi_name", "").get("val", "")
-    
+
     def get_curr_filename(self) -> str:
         mod_id = self.get_curr_mod()
         pi_name = self.get_curr_pi_name()
         return (
-                f"Review_Matrix_{pi_name.replace(',', '_')}_{mod_id}_"
-                f"{datetime.now().strftime('%Y-%m-%d')}.pdf"
-            )
+            f"Review_Matrix_{pi_name.replace(',', '_')}_{mod_id}_"
+            f"{datetime.now().strftime('%Y-%m-%d')}.pdf"
+        )
 
     #
     # --------------------- AUTH PAGE ---------------------
@@ -158,7 +158,8 @@ class StreamLitApp:
     def get_user_auth(self) -> None:
         """Retrieve the user's access token after device flow authentication."""
         try:
-            response = requests.get("http://backend:8000/acquire_access_token/")
+            response = requests.get(
+                "http://backend:8000/acquire_access_token/")
             if response.status_code == 200:
                 self.change_page("landing")  # Includes the "Proceed" button
             else:
@@ -189,36 +190,38 @@ class StreamLitApp:
                     "Proceed", key="ProceedButtonAuth", on_click=self.get_user_auth
                 )
 
-
     def instantiate_landing_page(self) -> None:
         """Displays the landing page for collecting MOD/Worktag ID."""
         placeholder = st.empty()
         with placeholder.container():
             st.title("Editable Form - Extension Review Matrix")
             st.subheader("Enter a MOD ID to Prefill the Review Matrix")
-            
+
             # Prefill the text input with "MOD"
-            mod_id_input = st.text_input("MOD/Worktag ID:", value="MOD", key="curr_mod_input")
-            
+            mod_id_input = st.text_input(
+                "MOD/Worktag ID:", value="MOD", key="curr_mod_input")
+
             # Check for invalid characters and display a warning if necessary
             if any(char.isalpha() and char.upper() not in "MOD" for char in mod_id_input):
-                st.warning("Please ensure the MOD ID only contains 'MOD' followed by numbers.")
-            
+                st.warning(
+                    "Please ensure the MOD ID only contains 'MOD' followed by numbers.")
+
             # Define a callback function for the "Proceed" button
             def proceed_callback():
                 # Convert the input to uppercase and ensure it starts with "MOD"
                 mod_id = mod_id_input.upper()
                 if not mod_id.startswith("MOD"):
                     mod_id = "MOD" + mod_id.lstrip("MOD")
-                
+
                 # Update the session state with the formatted MOD ID
                 st.session_state["curr_mod"] = mod_id
-                
+
                 # Call the fetch_autofill method
                 self.fetch_autofill()
-            
+
             # Button to proceed with the form submission
-            st.button("Proceed", key="ProceedButtonLanding", on_click=proceed_callback)
+            st.button("Proceed", key="ProceedButtonLanding",
+                      on_click=proceed_callback)
 
     #
     # --------------------- QUERY PAGE ---------------------
@@ -240,6 +243,25 @@ class StreamLitApp:
                 self._show_review_fields(data)
                 self._show_review_notes(data)
             self._show_utility_buttons()
+
+        # Autosave the updated values
+        self.autosave_values()
+
+    def autosave_values(self) -> None:
+        """
+        Autosave the filled entries from user input and save to session state.
+
+        This method is called whenever the form is displayed to ensure changes are saved.
+        """
+        updated = st.session_state.get("curr_vals", {}).copy()
+        for key in self.fields_map:
+            updated[key] = {
+                "val": st.session_state.get(key, ""),
+                "notes": st.session_state.get(f"{key}_notes", ""),
+            }
+
+        st.session_state["curr_vals"] = updated
+        st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
 
     def _show_basic_info_fields(self, data: dict) -> None:
         """Displays the MOD/Worktag ID and PI Name fields."""
@@ -305,24 +327,25 @@ class StreamLitApp:
             )
 
     def _show_utility_buttons(self) -> None:
-        """Displays sidebar buttons for update, download, restore, and new mod."""
+        """Displays sidebar buttons for download, restore, and new mod."""
         with st.sidebar:
             st.markdown("### Toolbar")
-            st.write("*Below you'll find options to update or reset your form data.*")
-            st.button(
-                "Save Edits",
-                key="UpdateButton",
-                on_click=self.update_values,
-                help="Save your current edits.",
-                use_container_width=True
-            )
+            st.write(
+                "*Below you'll find options to reset or download your form data.*")
+
+            # Define a callback function for the download button
+            def download_callback():
+                self.autosave_values()
+                st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
+
             st.download_button(
                 "Download PDF",
-                data=st.session_state["curr_pdf_bytes"],
+                data=self.get_pdf_bytes(),
                 file_name=self.get_curr_filename(),
                 key="DownloadPDFButton",
                 help="Generate and download a filled-out PDF form based on your last save.",
-                use_container_width=True
+                use_container_width=True,
+                on_click=download_callback
             )
             st.button(
                 "Restore Autofill",
@@ -338,7 +361,12 @@ class StreamLitApp:
                 help="Return to the landing page to enter a different MOD/Worktag ID.",
                 use_container_width=True
             )
-
+            
+    def get_pdf_bytes(self) -> bytes:
+        """Generate and return the PDF bytes."""
+        self.autosave_values()
+        return st.session_state.get("curr_pdf_bytes", b"")
+    
     def new_mod(self) -> None:
         """Switch back to landing page."""
         # TODO: Reset the state before transition
@@ -348,7 +376,8 @@ class StreamLitApp:
         """Revert to original autofiller responses."""
         # print(st.session_state["curr_vals"])
         # print(st.session_state["autofilled_vals"])
-        st.session_state["curr_vals"] = st.session_state.get("autofilled_vals", {})
+        st.session_state["curr_vals"] = st.session_state.get(
+            "autofilled_vals", {})
         st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
 
     def update_values(self) -> None:
@@ -365,7 +394,7 @@ class StreamLitApp:
             }
 
         st.session_state["curr_vals"] = updated
-        st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes() 
+        st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
         st.session_state["page"] = "query"
 
     #
@@ -387,7 +416,8 @@ class StreamLitApp:
                     for key, field_name in self.fields_map_pdf.items():
                         if field_name:
                             val = updated.get(key, {}).get("val", "")
-                            writer.update_page_form_field_values(page, {field_name: val})
+                            writer.update_page_form_field_values(
+                                page, {field_name: val})
                     writer.add_page(page)
 
             pdf_bytes = BytesIO()
@@ -409,7 +439,7 @@ class StreamLitApp:
         then go to the query page.
         """
         mod_id = self.get_curr_mod()
-        
+
         try:
             response = requests.get(
                 "http://backend:8000/run", params={"mod_id": mod_id}
@@ -423,7 +453,8 @@ class StreamLitApp:
                         return
                     st.session_state["autofilled_vals"] = data
                     st.session_state["curr_vals"] = data.copy()
-                    st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes() # Requires curr_vals in state
+                    # Requires curr_vals in state
+                    st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
                     self.change_page("query")
                 except (json.JSONDecodeError, TypeError) as e:
                     st.error(f"Error processing data: {e}")
