@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 from unittest.mock import patch, MagicMock
 
-from backend.libs.sharepoint_connector import SharepointConnector
+from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
 
 
 #
