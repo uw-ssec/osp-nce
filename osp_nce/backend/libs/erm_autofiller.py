@@ -85,7 +85,8 @@ class ERMAutofiller:
         self.data_rad = {}
 
         for col in df_rad.columns:
-            self.data_rad[col] = {"value": df_rad[col].values[0], "source": "RAD"}
+            self.data_rad[col] = {
+                "value": df_rad[col].values[0], "source": "RAD"}
 
         self.data_sharepoint = {}
 
@@ -162,7 +163,7 @@ class ERMAutofiller:
         self.answers["ri15"] = self.ri15()
         self.answers["ri16"] = self.ri16()
         self.answers["ri17"] = self.ri17()
-        self.answers["review_notes"] = {"val": "", "notes": ""}
+        self.answers["review_notes"] = self.get_concatenated_notes()
         return self.answers
 
     def get_concatenated_notes(self) -> str:
@@ -178,7 +179,9 @@ class ERMAutofiller:
             for answer in self.answers.values()
             if ("notes" in answer) and (answer["notes"] != "")
         ]
-        return "\n".join(notes_list)
+        
+        return {"val": "\n".join(notes_list),
+                "notes": "Concatenated notes from all answers."}
 
     def to_json(self) -> str:
         """
@@ -242,7 +245,8 @@ class ERMAutofiller:
         if isinstance(condition, (bool, np.bool_)):
             return self.OUT_YES if condition else self.OUT_NO
         else:
-            raise TypeError(f"Expected boolean input, got {type(condition)} instead")
+            raise TypeError(
+                f"Expected boolean input, got {type(condition)} instead")
 
     # ------------------------------------------------------------------------
     # Individual Business Logic Methods (RI0 - RI17)
@@ -281,8 +285,10 @@ class ERMAutofiller:
                 }
         """
         try:
-            authorized_amount = float(self.data_rad["AuthorizedAmount"]["value"])
-            billed_to_date_amt = float(self.data_rad["BilledToDateAmount"]["value"])
+            authorized_amount = float(
+                self.data_rad["AuthorizedAmount"]["value"])
+            billed_to_date_amt = float(
+                self.data_rad["BilledToDateAmount"]["value"])
         except (KeyError, IndexError, ValueError) as e:
             logger.error(f"Error accessing or converting data: {e}")
             return {
@@ -312,8 +318,10 @@ class ERMAutofiller:
                 }
         """
         try:
-            authorized_amount = float(self.data_rad["AuthorizedAmount"]["value"])
-            billed_to_date_amt = float(self.data_rad["BilledToDateAmount"]["value"])
+            authorized_amount = float(
+                self.data_rad["AuthorizedAmount"]["value"])
+            billed_to_date_amt = float(
+                self.data_rad["BilledToDateAmount"]["value"])
         except (KeyError, IndexError, ValueError) as e:
             logger.error(f"Error accessing or converting data: {e}")
             return {
@@ -494,7 +502,8 @@ class ERMAutofiller:
                 }
         """
         try:
-            is_animal_use_rad = self._is_yes(self.data_rad["isAnimalUse"]["value"])
+            is_animal_use_rad = self._is_yes(
+                self.data_rad["isAnimalUse"]["value"])
             is_animal_use_ext = self._is_yes(
                 self.data_sharepoint["AnimalResearchDone"]["value"]
             )
@@ -669,8 +678,10 @@ class ERMAutofiller:
                 }
         """
         try:
-            authorized_amount = float(self.data_rad["AuthorizedAmount"]["value"])
-            billed_to_date_amt = float(self.data_rad["BilledToDateAmount"]["value"])
+            authorized_amount = float(
+                self.data_rad["AuthorizedAmount"]["value"])
+            billed_to_date_amt = float(
+                self.data_rad["BilledToDateAmount"]["value"])
         except (KeyError, IndexError, ValueError) as e:
             logger.error(f"Error accessing or converting data: {e}")
             return {
