@@ -3,7 +3,7 @@ import pandas as pd
 import sqlalchemy
 from unittest.mock import MagicMock, patch
 
-from backend.libs.sql_connector import SQLConnector
+from osp_nce.backend.libs.sql_connector import SQLConnector
 
 
 #

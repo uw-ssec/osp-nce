@@ -1,11 +1,14 @@
 [tool.poetry]
-name = "ospnce"
+name = "osp_nce"
 version = "0.1.0"
 description = "Extension review automation tool for the UW Office of Sponsored Programs."
 authors = [
     "Sid Gurajala <sgurajala99@gmail.com>",
-    "Edoouard Seryozhenkov <edouas@uw.edu>"
+    "Edoouard Seryozhenkov <edouas@uw.edu>",
+    "Apoorva Sheera <asheera@uw.edu>",
+    "Daniel Vogler <dvogler@uw.edu>",
 ]
+packages = [{ include = "osp_nce" }]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -34,11 +37,8 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-pythonpath = "src"
+pythonpath = "osp_nce"
 addopts = "-v"
 
 [tool.black]
 line-length = 88
-
-[installer]
-no-binary = ["pymssql"]

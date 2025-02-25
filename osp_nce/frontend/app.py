@@ -7,13 +7,8 @@ import pandas as pd
 import requests
 from PyPDF2 import PdfReader, PdfWriter
 
-import sys
-import os
+from osp_nce.shared.erm_form import Form
 
-# Adjust the sys.path to ensure that the shared directory is in the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
-from src.shared.erm_form import Form
 
 class StreamLitApp:
     """
@@ -21,14 +16,13 @@ class StreamLitApp:
     """
 
     def __init__(self):
-        
+
         # Initialize the form object
         form = Form()
         self.fields = form.get_fields()
         self.fields_map = form.get_fields_map()
         self.fields_map_pdf = form.get_fields_map_pdf()
-        
-    
+
     st.set_page_config(
         page_title="GRACE",
         page_icon=":robot_face:",
@@ -109,8 +103,7 @@ class StreamLitApp:
     def get_user_auth(self) -> None:
         """Retrieve the user's access token after device flow authentication."""
         try:
-            response = requests.get(
-                "http://backend:8000/acquire_access_token/")
+            response = requests.get("http://backend:8000/acquire_access_token/")
             if response.status_code == 200:
                 self.change_page("landing")  # Includes the "Proceed" button
             else:
@@ -150,12 +143,16 @@ class StreamLitApp:
 
             # Prefill the text input with "MOD"
             mod_id_input = st.text_input(
-                "MOD/Worktag ID:", value="MOD", key="curr_mod_input")
+                "MOD/Worktag ID:", value="MOD", key="curr_mod_input"
+            )
 
             # Check for invalid characters and display a warning if necessary
-            if any(char.isalpha() and char.upper() not in "MOD" for char in mod_id_input):
+            if any(
+                char.isalpha() and char.upper() not in "MOD" for char in mod_id_input
+            ):
                 st.warning(
-                    "Please ensure the MOD ID only contains 'MOD' followed by numbers.")
+                    "Please ensure the MOD ID only contains 'MOD' followed by numbers."
+                )
 
             # Define a callback function for the "Proceed" button
             def proceed_callback():
@@ -171,8 +168,7 @@ class StreamLitApp:
                 self.fetch_autofill()
 
             # Button to proceed with the form submission
-            st.button("Proceed", key="ProceedButtonLanding",
-                      on_click=proceed_callback)
+            st.button("Proceed", key="ProceedButtonLanding", on_click=proceed_callback)
 
     #
     # --------------------- QUERY PAGE ---------------------
@@ -281,8 +277,7 @@ class StreamLitApp:
         """Displays sidebar buttons for download, restore, and new mod."""
         with st.sidebar:
             st.markdown("### Toolbar")
-            st.write(
-                "*Below you'll find options to reset or download your form data.*")
+            st.write("*Below you'll find options to reset or download your form data.*")
 
             # Define a callback function for the download button
             def download_callback():
@@ -296,28 +291,28 @@ class StreamLitApp:
                 key="DownloadPDFButton",
                 help="Generate and download a filled-out PDF form based on your last save.",
                 use_container_width=True,
-                on_click=download_callback
+                on_click=download_callback,
             )
             st.button(
                 "Restore Autofill",
                 key="RestoreAutofiller",
                 on_click=self.restore_autofiller_responses,
                 help="Undo any changes you've made and revert to the original autofilled responses.",
-                use_container_width=True
+                use_container_width=True,
             )
             st.button(
                 "New Mod",
                 key="NewMod",
                 on_click=self.new_mod,
                 help="Return to the landing page to enter a different MOD/Worktag ID.",
-                use_container_width=True
+                use_container_width=True,
             )
-            
+
     def get_pdf_bytes(self) -> bytes:
         """Generate and return the PDF bytes."""
         self.autosave_values()
         return st.session_state.get("curr_pdf_bytes", b"")
-    
+
     def new_mod(self) -> None:
         """Switch back to landing page."""
         # TODO: Reset the state before transition
@@ -327,8 +322,7 @@ class StreamLitApp:
         """Revert to original autofiller responses."""
         # print(st.session_state["curr_vals"])
         # print(st.session_state["autofilled_vals"])
-        st.session_state["curr_vals"] = st.session_state.get(
-            "autofilled_vals", {})
+        st.session_state["curr_vals"] = st.session_state.get("autofilled_vals", {})
         st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
 
     def update_values(self) -> None:
@@ -368,7 +362,8 @@ class StreamLitApp:
                         if field_name:
                             val = updated.get(key, {}).get("val", "")
                             writer.update_page_form_field_values(
-                                page, {field_name: val})
+                                page, {field_name: val}
+                            )
                     writer.add_page(page)
 
             pdf_bytes = BytesIO()

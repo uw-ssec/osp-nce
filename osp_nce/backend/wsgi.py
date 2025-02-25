@@ -3,9 +3,9 @@ import uvicorn
 import os
 import logging
 
-from src.backend.libs.sql_connector import SQLConnector
-from src.backend.libs.sharepoint_connector import SharepointConnector
-from src.backend.libs.erm_autofiller import ERMAutofiller
+from osp_nce.backend.libs.sql_connector import SQLConnector
+from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
+from osp_nce.backend.libs.erm_autofiller import ERMAutofiller
 import streamlit as st
 from typing import Dict
 from datetime import datetime
@@ -105,4 +105,4 @@ async def run(
 
 
 if __name__ == "__main__":
-    uvicorn.run("src.backend.wsgi:app", host="0.0.0.0", port=8000)
+    uvicorn.run("osp_nce.backend.wsgi:app", host="0.0.0.0", port=8000)
