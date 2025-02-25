@@ -7,6 +7,8 @@ import pandas as pd
 import requests
 from PyPDF2 import PdfReader, PdfWriter
 
+from osp_nce.shared.erm_form import Form
+
 
 class StreamLitApp:
     """
@@ -14,70 +16,13 @@ class StreamLitApp:
     """
 
     def __init__(self):
-        # TODO --- Move this stuff to the ERM autofiller in some way
-        # Initialize the fields with their helper texts
-        self.fields = {
-            "SFI Current?": "No - Send email to research@uw.edu for review.",
-            "Remaining Balance $$": "Check Award Portal for award balance.",
-            "Is the award in deficit?": "Yes - PI must explain deficit & transfer costs to appropriate non-federal, non-sponsored departmental worktag or provide Sponsor assurance that further funding is forthcoming.",
-            "Is the balance greater than 25% of the total award?": "Yes - PI must provide a programmatic explanation for a large balance.",
-            "Award lines listed or 'extend all' indicated?": "Note in MOD Comments which award lines are to be extended if campus so indicates.",
-            "Temporary Request?": "Include non-sponsored departmental worktag in MOD Comments & History.",
-            "New Cost Share?": "Yes - Attach revised CS Addendum to MOD.",
-            "Human Subjects?": "Yes - Verify and document IRB approval(s). Refer to Human Subjects Review Guidance.",
-            "Animal Use?": "Yes - Verify and document IACUC approval(s). Refer to Animal Use Compliance Verification guidance.",
-            "Prior Approval required?": "Federal award - Review Federal-Wide Research Terms & Conditions (RTCs) Prior Approval Matrix, Appendix A to confirm whether the award requires prior approval.",
-            "Has the project previously been extended? Is this an NIH 2nd+ extension?": "Yes - Ensure that the Budget, Progress Report, and Programmatic Justification are included as 3 separate PDFs.",
-            "Is the request to extend within Sponsor’s required timeframe?": "No - Extension requires Sponsor approval.",
-            "Is this a federal contract?": "Yes - Extension requires Sponsor approval.",
-            "Fixed Price terms?": "No - Extension requires Sponsor approval. Review fixed price terms.",
-            "Paid in full?": "No - Check Award Portal. If outstanding payments exist, deny extension until PI/campus resolve with Sponsor.",
-            "All deliverables submitted?": "No - Extension requires Sponsor approval. Review fixed price terms.",
-            "FAR clause 52.222-54 (e-verify)?": "Yes - Forward E-verify process to your campus contact & state in MOD comments that e-verify is required.",
-            "Review Notes": "Enter any additional notes here.",
-        }
-        self.fields_map = {
-            "ri1": "SFI Current?",
-            "ri2": "Remaining Balance $$",
-            "ri3": "Is the award in deficit?",
-            "ri4": "Is the balance greater than 25% of the total award?",
-            "ri5": "Award lines listed or 'extend all' indicated?",
-            "ri6": "Temporary Request?",
-            "ri7": "New Cost Share?",
-            "ri8": "Human Subjects?",
-            "ri9": "Animal Use?",
-            "ri10": "Prior Approval required?",
-            "ri11": "Has the project previously been extended? Is this an NIH 2nd+ extension?",
-            "ri12": "Is the request to extend within Sponsor’s required timeframe?",
-            "ri13": "Is this a federal contract?",
-            "ri14": "FAR clause 52.222-54 (e-verify)?",
-            "ri15": "Fixed Price terms?",
-            "ri16": "Paid in full?",
-            "ri17": "All deliverables submitted?",
-            "review_notes": "Review Notes",
-        }
-        self.fields_map_pdf = {
-            "pi_name": "PI Name",
-            "mod_id": "MOD/Worktag ID",
-            "ri1": "SFI",
-            "ri2": "RemBal",
-            "ri3": "Deficit?",
-            "ri4": "Greater than 25%?",
-            "ri5": "Award lines",
-            "ri6": "TempReq",
-            "ri7": "CostShare",
-            "ri8": "HumSub",
-            "ri9": "AnimalUse",
-            "ri10": "PriorApp",
-            "ri11": "PrevExt?",
-            "ri12": "ExtendInTime?",
-            "ri13": "FedContract?",
-            "ri14": "FAR clause 5222254",
-            "ri15": "Fixed Price terms",
-            "ri16": "Paid in full",
-            "ri17": "All deliverables  submitted",
-            "review_notes": "Review Notes",
-        }
+
+        # Initialize the form object
+        form = Form()
+        self.fields = form.get_fields()
+        self.fields_map = form.get_fields_map()
+        self.fields_map_pdf = form.get_fields_map_pdf()
+
     st.set_page_config(
         page_title="GRACE",
         page_icon=":robot_face:",
@@ -124,14 +69,14 @@ class StreamLitApp:
     def get_curr_pi_name(self) -> str:
         curr_vals = st.session_state.get("curr_vals", {})
         return curr_vals.get("pi_name", "").get("val", "")
-    
+
     def get_curr_filename(self) -> str:
         mod_id = self.get_curr_mod()
         pi_name = self.get_curr_pi_name()
         return (
-                f"Review_Matrix_{pi_name.replace(',', '_')}_{mod_id}_"
-                f"{datetime.now().strftime('%Y-%m-%d')}.pdf"
-            )
+            f"Review_Matrix_{pi_name.replace(',', '_')}_{mod_id}_"
+            f"{datetime.now().strftime('%Y-%m-%d')}.pdf"
+        )
 
     #
     # --------------------- AUTH PAGE ---------------------
@@ -189,17 +134,41 @@ class StreamLitApp:
                     "Proceed", key="ProceedButtonAuth", on_click=self.get_user_auth
                 )
 
-    #
-    # --------------------- LANDING PAGE ---------------------
-    #
     def instantiate_landing_page(self) -> None:
         """Displays the landing page for collecting MOD/Worktag ID."""
         placeholder = st.empty()
         with placeholder.container():
             st.title("Editable Form - Extension Review Matrix")
             st.subheader("Enter a MOD ID to Prefill the Review Matrix")
-            st.text_input("MOD/Worktag ID:", value="", key="curr_mod")
-            st.button("Proceed", key="ProceedButtonLanding", on_click=self.fetch_autofill)
+
+            # Prefill the text input with "MOD"
+            mod_id_input = st.text_input(
+                "MOD/Worktag ID:", value="MOD", key="curr_mod_input"
+            )
+
+            # Check for invalid characters and display a warning if necessary
+            if any(
+                char.isalpha() and char.upper() not in "MOD" for char in mod_id_input
+            ):
+                st.warning(
+                    "Please ensure the MOD ID only contains 'MOD' followed by numbers."
+                )
+
+            # Define a callback function for the "Proceed" button
+            def proceed_callback():
+                # Convert the input to uppercase and ensure it starts with "MOD"
+                mod_id = mod_id_input.upper()
+                if not mod_id.startswith("MOD"):
+                    mod_id = "MOD" + mod_id.lstrip("MOD")
+
+                # Update the session state with the formatted MOD ID
+                st.session_state["curr_mod"] = mod_id
+
+                # Call the fetch_autofill method
+                self.fetch_autofill()
+
+            # Button to proceed with the form submission
+            st.button("Proceed", key="ProceedButtonLanding", on_click=proceed_callback)
 
     #
     # --------------------- QUERY PAGE ---------------------
@@ -221,6 +190,25 @@ class StreamLitApp:
                 self._show_review_fields(data)
                 self._show_review_notes(data)
             self._show_utility_buttons()
+
+        # Autosave the updated values
+        self.autosave_values()
+
+    def autosave_values(self) -> None:
+        """
+        Autosave the filled entries from user input and save to session state.
+
+        This method is called whenever the form is displayed to ensure changes are saved.
+        """
+        updated = st.session_state.get("curr_vals", {}).copy()
+        for key in self.fields_map:
+            updated[key] = {
+                "val": st.session_state.get(key, ""),
+                "notes": st.session_state.get(f"{key}_notes", ""),
+            }
+
+        st.session_state["curr_vals"] = updated
+        st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
 
     def _show_basic_info_fields(self, data: dict) -> None:
         """Displays the MOD/Worktag ID and PI Name fields."""
@@ -286,39 +274,44 @@ class StreamLitApp:
             )
 
     def _show_utility_buttons(self) -> None:
-        """Displays sidebar buttons for update, download, restore, and new mod."""
+        """Displays sidebar buttons for download, restore, and new mod."""
         with st.sidebar:
             st.markdown("### Toolbar")
-            st.write("*Below you'll find options to update or reset your form data.*")
-            st.button(
-                "Save Edits",
-                key="UpdateButton",
-                on_click=self.update_values,
-                help="Save your current edits.",
-                use_container_width=True
-            )
+            st.write("*Below you'll find options to reset or download your form data.*")
+
+            # Define a callback function for the download button
+            def download_callback():
+                self.autosave_values()
+                st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
+
             st.download_button(
                 "Download PDF",
-                data=st.session_state["curr_pdf_bytes"],
+                data=self.get_pdf_bytes(),
                 file_name=self.get_curr_filename(),
                 key="DownloadPDFButton",
                 help="Generate and download a filled-out PDF form based on your last save.",
-                use_container_width=True
+                use_container_width=True,
+                on_click=download_callback,
             )
             st.button(
                 "Restore Autofill",
                 key="RestoreAutofiller",
                 on_click=self.restore_autofiller_responses,
                 help="Undo any changes you've made and revert to the original autofilled responses.",
-                use_container_width=True
+                use_container_width=True,
             )
             st.button(
                 "New Mod",
                 key="NewMod",
                 on_click=self.new_mod,
                 help="Return to the landing page to enter a different MOD/Worktag ID.",
-                use_container_width=True
+                use_container_width=True,
             )
+
+    def get_pdf_bytes(self) -> bytes:
+        """Generate and return the PDF bytes."""
+        self.autosave_values()
+        return st.session_state.get("curr_pdf_bytes", b"")
 
     def new_mod(self) -> None:
         """Switch back to landing page."""
@@ -346,7 +339,7 @@ class StreamLitApp:
             }
 
         st.session_state["curr_vals"] = updated
-        st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes() 
+        st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
         st.session_state["page"] = "query"
 
     #
@@ -368,7 +361,9 @@ class StreamLitApp:
                     for key, field_name in self.fields_map_pdf.items():
                         if field_name:
                             val = updated.get(key, {}).get("val", "")
-                            writer.update_page_form_field_values(page, {field_name: val})
+                            writer.update_page_form_field_values(
+                                page, {field_name: val}
+                            )
                     writer.add_page(page)
 
             pdf_bytes = BytesIO()
@@ -390,7 +385,7 @@ class StreamLitApp:
         then go to the query page.
         """
         mod_id = self.get_curr_mod()
-        # TODO: Clean/Validate the user inputted mod_id before passing to backend
+
         try:
             response = requests.get(
                 "http://backend:8000/run", params={"mod_id": mod_id}
@@ -404,7 +399,8 @@ class StreamLitApp:
                         return
                     st.session_state["autofilled_vals"] = data
                     st.session_state["curr_vals"] = data.copy()
-                    st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes() # Requires curr_vals in state
+                    # Requires curr_vals in state
+                    st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
                     self.change_page("query")
                 except (json.JSONDecodeError, TypeError) as e:
                     st.error(f"Error processing data: {e}")
