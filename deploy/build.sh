@@ -6,7 +6,7 @@ SCRIPT_DIR=$(dirname "$0")
 # Run credentials.sh to set environment variables
 source "$SCRIPT_DIR/credentials.sh"
 
-# Get and navigate to project root
+# Get and move to project root
 cd "$SCRIPT_DIR/.."
 PROJECT_ROOT="$(pwd)"
 
