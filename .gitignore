@@ -172,3 +172,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+# LLM backend
+src/llm_backend/.pixi
+src/llm_backend/src/libs/data
+src/libs/models/
