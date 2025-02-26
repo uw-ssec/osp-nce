@@ -21,9 +21,7 @@ class SharepointConnector:
         access_token (str or None): Current access token to use for requests.
     """
 
-    def __init__(
-        self, client_id, tenant_id, scopes=["Files.Read", "Files.Read.All"]
-    ):
+    def __init__(self, client_id, tenant_id, scopes=["Files.Read"]):
         """
         Initialize the connector with the required Azure AD application details.
 
@@ -31,7 +29,7 @@ class SharepointConnector:
             client_id (str): Azure AD client (application) ID.
             tenant_id (str): Azure AD tenant ID (or domain).
             scopes (list[str], optional): List of Graph permissions to request.
-                Defaults to ["Files.Read", "Files.Read.All"] if not provided.
+                Defaults to ["Files.Read"] if not provided.
         """
         self.client_id = client_id
         self.tenant_id = tenant_id
@@ -46,13 +44,13 @@ class SharepointConnector:
         Use Azure AD device-flow to acquire an access token.
 
         Prompts the user to visit https://microsoft.com/devicelogin and enter a
-        code. Stores the acquired token internally.
+        code. 
 
         Raises:
             ValueError: If device flow or token acquisition fails.
         """
         if not self.client_id:
-            raise ValueError("Client ID must be provided in the constructor.")
+            raise AttributeError("Client ID must be provided in the constructor.")
 
         # Set up MSAL client for device flow authentication
         app = msal.PublicClientApplication(
@@ -62,25 +60,28 @@ class SharepointConnector:
         # Intiate authentication
         flow = app.initiate_device_flow(scopes=self.scopes)
         if "user_code" not in flow:
-            raise ValueError(
-                "Failed to create device flow. Check Azure AD app registration."
+            raise RuntimeError(
+                "No user_code in device flow. Check Azure AD app registration."
             )
         self._flow = flow
         self._app = app
-        return flow['message']
+        return flow["message"]
 
     def acquire_token(self):
-        # Prompt the user to go to the link to enter an access code
+        """
+        Aquire the access token upon completion of the device flow login. 
+        """
+        if not (self._app and self._flow):
+            raise AttributeError("Device flow has not initiated. Call `prompt_user` first.")
+
         result = self._app.acquire_token_by_device_flow(self._flow)
+
         # Extract the access token from the result
         if "access_token" not in result:
-            error_detail = result.get("error_description") or result.get(
-                "error"
-            )
-            return (f"Error acquiring token: {error_detail}")
+            error_detail = result.get("error")
+            raise RuntimeError(f"Error acquiring token: {error_detail}")
         else:
             self._access_token = result["access_token"]
-            return ("Access token acquired successfully.")
 
     def get_item_info_from_short_link(self, short_link):
         """
@@ -94,12 +95,11 @@ class SharepointConnector:
                 and item info.
 
         Raises:
-            RuntimeError: If an error from the endpoint or no token exists.
+            AttributeError: If the user has no access token.
+            RuntimeError: If error from endpoint.
         """
         if not self._access_token:
-            raise RuntimeError(
-                "Access token not found. Call acquire_token() first."
-            )
+            raise AttributeError("Access token not found. Call acquire_token() first.")
 
         # Encode the short link into base64 (URL-safe, no padding).
         encoded_bytes = base64.urlsafe_b64encode(short_link.encode("utf-8"))
@@ -142,9 +142,7 @@ class SharepointConnector:
         """
         # Ensure the access token is available
         if not self._access_token:
-            raise RuntimeError(
-                "Access token not found. Call acquire_token() first."
-            )
+            raise RuntimeError("Access token not found. Call acquire_token() first.")
 
         # Construct the download URL
         download_url = (
@@ -207,13 +205,13 @@ class SharepointConnector:
 
         Args:
             short_link (str): The SharePoint short link to decode.
-            header (int, list of int, default 0): Row (0-indexed) to use for the 
+            header (int, list of int, default 0): Row (0-indexed) to use for the
                 column labels of the parsed DataFrame.
-            skiprows (int, list-like, default 0): Line numbers to skip 
-                (0-indexed) or number of lines to skip (int) at the start of the 
+            skiprows (int, list-like, default 0): Line numbers to skip
+                (0-indexed) or number of lines to skip (int) at the start of the
                 file.
-            names (array-like, optional): List of column names to use. If file 
-                contains no header row, then you should explicitly pass 
+            names (array-like, optional): List of column names to use. If file
+                contains no header row, then you should explicitly pass
                 header=None.
 
         Returns:
@@ -265,7 +263,7 @@ class SharepointConnector:
                 submissions.
 
         Returns:
-            pandas.DataFrame: Parsed extension forms, up to date. 
+            pandas.DataFrame: Parsed extension forms, up to date.
         """
         column_names = [
             "ID",

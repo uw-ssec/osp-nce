@@ -1,0 +1,60 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "ed/test-suite"
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # Enable a manual trigger for testing
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+
+      - name: Cache Poetry packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+
+      - name: Install Poetry
+        run: curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Add Poetry to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Test with pytest
+        run: poetry run pytest
+
+  # Integration testing
+  # integration:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Build and test with Docker Compose
+  #       run: |
+  #         docker-compose build
+  #         docker-compose up -d
+  #         sleep 10
+  #         docker-compose exec <service-name> pytest
+  #         docker-compose down

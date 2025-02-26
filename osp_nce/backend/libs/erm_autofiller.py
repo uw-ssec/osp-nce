@@ -5,8 +5,8 @@ import logging
 import pandas as pd
 import numpy as np
 
-from src.backend.libs.sharepoint_connector import SharepointConnector
-from src.backend.libs.sql_connector import SQLConnector
+from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
+from osp_nce.backend.libs.sql_connector import SQLConnector
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class ERMAutofiller:
     SHORT_LINK = os.getenv("EXTENSION_FORMS_SHORT_LINK")
 
     # Path to RAD query
-    RAD_QUERY_FILE = "./src/sql/nonprod_rad.sql"
+    RAD_QUERY_FILE = "./osp_nce/sql/nonprod_rad.sql"
 
     # Shared constants and flags
     NA_FLAG = "AUTOMATED RESPONSE CURRENTLY UNAVAILABLE"
