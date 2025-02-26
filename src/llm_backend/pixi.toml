@@ -1,14 +1,11 @@
 [project]
 name = "rubin-rag"
 version = "0.1.0"
-description = "Rubin Telescope Chatbot"
-authors = ["Landung 'Don' Setiawan <landungs@uw.edu>"]
+description = "LLM Backend"
+authors = ["Sheera Apoorva <asheera@uw.edu>"]
 channels = ["conda-forge", "pytorch"]
 platforms = ["linux-64"]
 
-[tasks]
-start-jlab = {cmd = "jupyter lab", description = "Start Jupyter Lab"}
-serve-panel ={cmd = "python rubin-chat/rubin-panel-app.py", description = "Serve the panel app"}
 
 [dependencies]
 python = "3.11.*"
