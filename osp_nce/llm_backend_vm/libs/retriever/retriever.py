@@ -1,10 +1,10 @@
 from pathlib import Path
 from langchain_qdrant import Qdrant
 from qdrant_client import QdrantClient
-from src.libs.embeddings.embedding_model import get_embedding_model
+from libs.embeddings.embedding_model import get_embedding_model
 
 class Retriever:
-    def __init__(self, model_name: str, qdrant_path: str = None, collection_name: str = None):
+    def __init__(self, model_name: str = None, qdrant_path: str = None, collection_name: str = None):
         """
         Initializes the Retriever class with a model, Qdrant path, and collection name.
 
@@ -36,7 +36,7 @@ class Retriever:
         print(f"Creating new Qdrant collection '{collection_name}' with {len(documents)} documents using '{self.model_name}'.")
 
         self.collection_name = collection_name
-        self.qdrant_path = Path("src/libs/data/vector_stores") / collection_name
+        self.qdrant_path = Path("data/vector_stores") / collection_name
         self.qdrant_path.mkdir(parents=True, exist_ok=True)
 
         self.db = Qdrant.from_documents(
