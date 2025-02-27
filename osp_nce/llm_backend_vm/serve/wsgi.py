@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
-from libs.retriever import Retriever
-from libs.generator import Generator
-from libs.model_loader import ModelLoader
+from libs.retriever.retriever import Retriever
+from langchain.schema import Document
+# from libs.generator import Generator
+# from libs.model_loader import ModelLoader
 
 # generator = Generator() 
 # model_loader = ModelLoader()
@@ -12,19 +13,37 @@ app = FastAPI()
 
 # Define request model for retrieval
 class RetrieveRequest(BaseModel):
-    documents: List[Dict[str, Any]]
+    documents: List[Dict[str,Any]]
     query: str
     embedding_model: str
 
-@app.get("/retrieve/")
+def json_to_document(json_data):
+    """Convert JSON dict to LangChain Document object."""
+    return Document(
+        page_content=json_data["page_content"],
+        metadata=json_data["metadata"]
+    )
+
+@app.post("/retrieve/")
 async def retrieve(request: RetrieveRequest):
     try:
+        documents = [json_to_document(doc) for doc in request.documents]
         retriever = Retriever(model_name = request.embedding_model)
-        retriever.create_vector_store(request.documents, collection_name="temp_collection")
+        retriever.create_vector_store(documents, collection_name="temp_collection")
         relevant_docs = retriever.retrieve_docs(request.query)
-        return {relevant_docs}
+        # Format response properly
+        response_data = [
+            {
+                "metadata": doc.metadata,
+                "page_content": doc.page_content[:500]  # Limit content preview
+            }
+            for doc in relevant_docs
+        ]
+
+        return {"docs": response_data, "status_code": 200}
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"docs" : [], "status_code" : 500, "error": str(e)}
 
 
 # @app.get("/chat")

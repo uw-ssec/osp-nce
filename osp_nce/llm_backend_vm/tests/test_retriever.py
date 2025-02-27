@@ -9,7 +9,12 @@ def load_documents(pdf_folder: Path):
     documents = []
     for file in pdf_folder.glob("*.pdf"):
         loader = PyMuPDFLoader(str(file))
-        documents.extend(loader.load())
+        docs = loader.load()
+        for doc in docs:
+            documents.append({
+                "page_content": doc.page_content,
+                "metadata": doc.metadata  # Keep metadata intact
+            })
     return documents
 
 # Test function
