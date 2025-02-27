@@ -21,6 +21,8 @@ ipykernel = ">=6.29.5,<6.30"
 docker-py = ">=7.1.0,<7.2"
 testcontainers = ">=4.8.0,<4.9"
 tenacity = "==8.5.0"
+fastapi = ">=0.115.8,<0.116"
+pydantic = ">=2.10.6,<3"
 
 [pypi-dependencies]
 langchain = "==0.2.3"
