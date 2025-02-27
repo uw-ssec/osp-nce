@@ -5,9 +5,9 @@ import logging
 import pandas as pd
 import numpy as np
 
-from src.backend.libs.sharepoint_connector import SharepointConnector
-from src.backend.libs.sql_connector import SQLConnector
-from src.shared.erm_form import Form
+from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
+from osp_nce.backend.libs.sql_connector import SQLConnector
+from osp_nce.shared.erm_form import Form
 
 # Setup logging
 logger = logging.getLogger(__name__)

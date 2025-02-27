@@ -3,10 +3,10 @@ import uvicorn
 import os
 import logging
 
-from src.backend.libs.sql_connector import SQLConnector
-from src.backend.libs.sharepoint_connector import SharepointConnector
-from src.backend.libs.erm_autofiller import ERMAutofiller
-from src.shared.erm_form import Form
+from osp_nce.backend.libs.sql_connector import SQLConnector
+from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
+from osp_nce.backend.libs.erm_autofiller import ERMAutofiller
+from osp_nce.shared.erm_form import Form
 import streamlit as st
 from typing import Dict
 from datetime import datetime
