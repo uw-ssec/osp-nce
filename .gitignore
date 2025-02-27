@@ -175,6 +175,6 @@ cython_debug/
 
 
 # LLM backend
-src/llm_backend/.pixi
-src/llm_backend/src/libs/data
-src/libs/models/
+osp_nce/llm_backend_vm/.pixi
+osp_nce/llm_backend_vm/data/
+osp_nce/llm_backend_vm/libs/models/
