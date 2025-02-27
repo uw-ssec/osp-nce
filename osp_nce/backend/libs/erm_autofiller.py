@@ -5,8 +5,9 @@ import logging
 import pandas as pd
 import numpy as np
 
-from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
-from osp_nce.backend.libs.sql_connector import SQLConnector
+from src.backend.libs.sharepoint_connector import SharepointConnector
+from src.backend.libs.sql_connector import SQLConnector
+from src.shared.erm_form import Form
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class ERMAutofiller:
     def __init__(
         self,
         mod_id: str,
+        form: Form,
         rad_connector: SQLConnector,
         sharepoint_connector: SharepointConnector,
     ):
@@ -98,7 +100,8 @@ class ERMAutofiller:
 
         self.mod_id = mod_id
         self.award_number = df_rad["AwardNumber"]
-        self.answers = {}  # autofill() will store the review item results here
+        
+        self.form = form
 
     def process_extension_forms(self, df_sharepoint, award_number):
         """
@@ -129,7 +132,7 @@ class ERMAutofiller:
         # Standardize the award number and return the filtered data
         df_filter["UWAwardNumber"] = award_number
         return df_filter.reset_index()
-
+    
     def autofill(self):
         """
         Run all 17 business-logic methods in sequence and store the results.
@@ -141,30 +144,35 @@ class ERMAutofiller:
             dict: A dictionary of all 17 results, each of which is of the form
                 {"val": str, "notes": str}.
         """
-        self.answers["pi_name"] = {
+
+        self.form.fill_item("pi_name", {
             "val": self.data_rad["pi_name"]["value"],
             "notes": "",
-        }
-        self.answers["mod_id"] = {"val": self.mod_id, "notes": ""}
-        self.answers["ri1"] = self.ri1()
-        self.answers["ri2"] = self.ri2()
-        self.answers["ri3"] = self.ri3()
-        self.answers["ri4"] = self.ri4()
-        self.answers["ri5"] = self.ri5()
-        self.answers["ri6"] = self.ri6()
-        self.answers["ri7"] = self.ri7()
-        self.answers["ri8"] = self.ri8()
-        self.answers["ri9"] = self.ri9()
-        self.answers["ri10"] = self.ri10()
-        self.answers["ri11"] = self.ri11()
-        self.answers["ri12"] = self.ri12()
-        self.answers["ri13"] = self.ri13()
-        self.answers["ri14"] = self.ri14()
-        self.answers["ri15"] = self.ri15()
-        self.answers["ri16"] = self.ri16()
-        self.answers["ri17"] = self.ri17()
-        self.answers["review_notes"] = self.get_concatenated_notes()
-        return self.answers
+        })
+
+        self.form.fill_item("mod_id", {
+            "val": self.mod_id,
+            "notes": "",
+        })
+
+        self.form.fill_item("ri1", self.ri1())
+        self.form.fill_item("ri2", self.ri2())
+        self.form.fill_item("ri3", self.ri3())
+        self.form.fill_item("ri4", self.ri4())
+        self.form.fill_item("ri5", self.ri5())
+        self.form.fill_item("ri6", self.ri6())
+        self.form.fill_item("ri7", self.ri7())
+        self.form.fill_item("ri8", self.ri8())
+        self.form.fill_item("ri9", self.ri9())
+        self.form.fill_item("ri10", self.ri10())
+        self.form.fill_item("ri11", self.ri11())
+        self.form.fill_item("ri12", self.ri12())
+        self.form.fill_item("ri13", self.ri13())
+        self.form.fill_item("ri14", self.ri14())
+        self.form.fill_item("ri15", self.ri15())
+        self.form.fill_item("ri16", self.ri16())
+        self.form.fill_item("ri17", self.ri17())
+        self.form.fill_item("review_notes", self.get_concatenated_notes())
 
     def get_concatenated_notes(self) -> str:
         """
@@ -176,7 +184,7 @@ class ERMAutofiller:
         """
         notes_list = [
             answer["notes"]
-            for answer in self.answers.values()
+            for answer in self.form.answers.values()
             if ("notes" in answer) and (answer["notes"] != "")
         ]
         
@@ -191,7 +199,7 @@ class ERMAutofiller:
             str: JSON string of all 17 results, formatted as dictionaries of the
                 form {"val": str, "notes": str}.
         """
-        return json.dumps(self.answers)
+        return json.dumps(self.form.answers)
 
     # ------------------------------------------------------------------------
     # Helper Methods
