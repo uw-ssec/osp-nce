@@ -3,7 +3,7 @@ import pandas as pd
 from unittest.mock import MagicMock
 
 from osp_nce.backend.libs.erm_autofiller import ERMAutofiller
-
+from osp_nce.shared.erm_form import Form
 
 @pytest.fixture
 def mock_rad_connector():
@@ -46,7 +46,8 @@ def mock_sharepoint_connector():
 
 def test_erm_autofiller_init(mock_rad_connector, mock_sharepoint_connector):
     """Test initialization of ERMAutofiller with mocked connectors."""
-    autofiller = ERMAutofiller("12345", mock_rad_connector, mock_sharepoint_connector)
+    mock_form = Form()
+    autofiller = ERMAutofiller("12345", mock_form, mock_rad_connector, mock_sharepoint_connector)
 
     assert autofiller.mod_id == "12345"
     assert autofiller.award_number.iloc[0] == "12345"
