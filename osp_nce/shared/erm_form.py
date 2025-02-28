@@ -3,7 +3,11 @@ import json
 
 class Form:
 
-    def __init__(self):
+    def __init__(self, input_data = None):
+        if input_data:
+            self.from_dict(input_data)
+            return
+        
         self.fields = {
             "SFI Current?": "No - Send email to research@uw.edu for review.",
             "Remaining Balance $$": "Check Award Portal for award balance.",
@@ -74,6 +78,8 @@ class Form:
                 "Fields Map keys are not a subset of Fields Map PDF keys.\n"
                 "To troubleshoot this, check the fields_map.json and fields_map_pdf.json files in the src/shared/form directory."
             )
+        
+        self.answers = {}
 
     def get_fields(self):
         return self.fields
@@ -84,18 +90,19 @@ class Form:
     def get_fields_map_pdf(self):
         return self.fields_map_pdf
 
-    def __main__(self):
-        "Testing erm_form.py:"
-        print("*" * 50)
-        form = Form()
-        print("Fields:")
-        print(json.dumps(form.fields, indent=4))
-        print("Fields Map:")
-        print(json.dumps(form.fields_map, indent=4))
-        print("Fields Map PDF:")
-        print(json.dumps(form.fields_map_pdf, indent=4))
+    def fill_item(self, item_id, answer):
+        self.answers[item_id] = answer
 
+    def to_dict(self):
+        return {
+            "fields": dict(self.fields),
+            "fields_map": dict(self.fields_map),
+            "fields_map_pdf": dict(self.fields_map_pdf),
+            "answers": dict(self.answers),
+        }
 
-if __name__ == "__main__":
-    form = Form()
-    form.__main__()
+    def from_dict(self, data):
+        self.fields = data["fields"]
+        self.fields_map = data["fields_map"]
+        self.fields_map_pdf = data["fields_map_pdf"]
+        self.answers = data["answers"]

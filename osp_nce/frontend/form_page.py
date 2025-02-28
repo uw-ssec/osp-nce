@@ -23,7 +23,13 @@ def get_curr_filename() -> str:
 
 def fetch_autofill(mod_id: str) -> bool:
     try:
-        response = requests.get("http://backend:8000/run", params={"mod_id": mod_id})
+        response = requests.post(
+            "http://backend:8000/run/",
+            json={
+                "mod_id": mod_id,
+                "form": st.session_state.form.to_dict(),  # Serialize the Form object to a dictionary
+            },
+        )
         if response.status_code != 200:
             try:
                 detail = response.json().get("detail", "Unknown error")
@@ -334,7 +340,6 @@ def fill_pdf_to_bytes() -> bytes:
 
 
 def run():
-    # st.write(st.session_state)
     if not st.session_state.get("curr_mod", ""):
         instantiate_query_page()
     else:

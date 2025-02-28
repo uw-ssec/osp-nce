@@ -40,6 +40,7 @@ def instantiate_auth_page() -> None:
     """Displays the authentication page."""
     # Initialize the form object
     form = Form()
+    st.session_state["form"] = form
     st.session_state["fields"] = form.get_fields()
     st.session_state["fields_map"] = form.get_fields_map()
     st.session_state["fields_map_pdf"] = form.get_fields_map_pdf()
@@ -48,7 +49,7 @@ def instantiate_auth_page() -> None:
         st.title("Get your Login Code to Start Automatic Form-Filling.")
         st.button(
             "Get Code",
-            key="authenticate",
+            key="requested_code",
             on_click=get_mfa_message,
         )
 
@@ -62,10 +63,10 @@ def instantiate_auth_page() -> None:
 
 
 def logout():
-    st.session_state.logged_in = False
-    st.session_state.auth_message = ""
-    st.session_state.show_proceed = False
+    for key in st.session_state:
+        del st.session_state[key]
     st.rerun()
+
 
 st.set_page_config(
     page_title="GRACE",
@@ -81,19 +82,23 @@ st.set_page_config(
 
 login_page = st.Page(instantiate_auth_page, title="Log in", icon=":material/login:")
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
-main_page = st.Page(
-    "autofiller_page.py", title="Editable Form", icon=":material/person_edit:"
+form_page = st.Page(
+    "form_page.py", title="Editable Form", icon=":material/person_edit:"
 )
-chatbot_page = st.Page("chatbot.py", title="Document Chat", icon=":material/smart_toy:")
+chatbot_page = st.Page(
+    "chatbot_page.py", title="Document Chat", icon=":material/smart_toy:"
+)
 
+# Note that page order matters here. If logged in will default to form_page
 if st.session_state.get("logged_in", False):
     pg = st.navigation(
         {
+            "Extension Review": [form_page, chatbot_page],
             "Account": [logout_page],
-            "Extension Review": [main_page, chatbot_page],
         }
     )
 else:
     pg = st.navigation([login_page])
 
+# print(pg.title)
 pg.run()
