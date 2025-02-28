@@ -23,16 +23,16 @@ class StreamLitApp:
         self.fields_map = form.get_fields_map()
         self.fields_map_pdf = form.get_fields_map_pdf()
 
-    st.set_page_config(
-        page_title="GRACE",
-        page_icon=":robot_face:",
-        layout="wide",
-        initial_sidebar_state="expanded",
-        menu_items={
-            "About": "# A streamlined approach to grant extension reviewing.",
-            "Report a bug": "https://github.com/uw-ssec/osp-nce/issues",
-        },
-    )
+    # st.set_page_config(
+    #     page_title="GRACE",
+    #     page_icon=":robot_face:",
+    #     layout="wide",
+    #     initial_sidebar_state="expanded",
+    #     menu_items={
+    #         "About": "# A streamlined approach to grant extension reviewing.",
+    #         "Report a bug": "https://github.com/uw-ssec/osp-nce/issues",
+    #     },
+    # )
 
     #
     # --------------------- NAVIGATION & PAGE MANAGEMENT ---------------------

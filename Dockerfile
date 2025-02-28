@@ -37,7 +37,7 @@ ENV PYTHONUNBUFFERED=1
 # Frontend
 FROM base AS streamlit
 EXPOSE 8501
-CMD ["poetry", "run", "streamlit", "run", "./osp_nce/frontend/main.py", "--server.port", "8501"]
+CMD ["poetry", "run", "streamlit", "run", "./osp_nce/frontend/app.py", "--server.port", "8501"]
 
 # Backend
 FROM base AS fastapi

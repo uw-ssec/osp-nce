@@ -13,6 +13,7 @@ from fastapi import FastAPI, Depends
 
 logger = logging.getLogger(__name__)
 
+
 # Get database credentials from environment variables
 db_user = os.getenv("RAD_USER")
 db_password = os.getenv("RAD_PASSWORD")
