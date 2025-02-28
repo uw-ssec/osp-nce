@@ -18,11 +18,9 @@ class StreamLitApp:
     def __init__(self):
 
         # Initialize the form object
-        form = Form()
-        self.fields = form.get_fields()
-        self.fields_map = form.get_fields_map()
-        self.fields_map_pdf = form.get_fields_map_pdf()
-
+        self.form = Form()
+        
+    
     st.set_page_config(
         page_title="GRACE",
         page_icon=":robot_face:",
@@ -68,7 +66,10 @@ class StreamLitApp:
 
     def get_curr_pi_name(self) -> str:
         curr_vals = st.session_state.get("curr_vals", {})
-        return curr_vals.get("pi_name", "").get("val", "")
+        pi_name = curr_vals.get("pi_name", {})
+        if isinstance(pi_name, dict):
+            return pi_name.get("val", "")
+        return ""
 
     def get_curr_filename(self) -> str:
         mod_id = self.get_curr_mod()
@@ -182,6 +183,10 @@ class StreamLitApp:
         """
         placeholder = st.empty()
         data = st.session_state.get("curr_vals", {})
+        
+        form = st.session_state.get("form", {})
+        
+        print(form)
 
         with placeholder.container():
             st.title("Editable Form - Extension Review Matrix")
@@ -201,7 +206,8 @@ class StreamLitApp:
         This method is called whenever the form is displayed to ensure changes are saved.
         """
         updated = st.session_state.get("curr_vals", {}).copy()
-        for key in self.fields_map:
+        fields_map = self.form.get_fields_map()
+        for key in fields_map:
             updated[key] = {
                 "val": st.session_state.get(key, ""),
                 "notes": st.session_state.get(f"{key}_notes", ""),
@@ -228,8 +234,9 @@ class StreamLitApp:
 
     def _show_review_fields(self, data: dict) -> None:
         """Displays the fields except the 'review_notes' entry."""
+        fields_map = self.form.get_fields_map()
         fields_in_order = [
-            field for field in self.fields_map if field != "review_notes"
+            field for field in fields_map if field != "review_notes"
         ]
 
         col1, col2, col3 = st.columns([2, 1, 2])
@@ -240,8 +247,9 @@ class StreamLitApp:
         with col3:
             st.subheader("**Notes**")
 
+        fields = self.form.get_fields()
         for ri_field in fields_in_order:
-            field_label = self.fields_map[ri_field]
+            field_label = fields_map[ri_field]
             col1, col2, col3 = st.columns([2, 1, 2])
             with col1:
                 st.text_input(
@@ -250,7 +258,7 @@ class StreamLitApp:
                     key=ri_field,
                 )
             with col2:
-                helper_text = self.fields.get(field_label, "")
+                helper_text = fields.get(field_label, "")
                 if helper_text:
                     st.caption(helper_text)
             with col3:
@@ -263,8 +271,9 @@ class StreamLitApp:
 
     def _show_review_notes(self, data: dict) -> None:
         """Displays the 'review_notes' field at the bottom."""
+        fields_map = self.form.get_fields_map()
         review_key = "review_notes"
-        if review_key in self.fields_map:
+        if review_key in fields_map:
             st.subheader("Review Notes")
             st.text_area(
                 label=" ",
@@ -320,9 +329,9 @@ class StreamLitApp:
 
     def restore_autofiller_responses(self) -> None:
         """Revert to original autofiller responses."""
-        # print(st.session_state["curr_vals"])
-        # print(st.session_state["autofilled_vals"])
-        st.session_state["curr_vals"] = st.session_state.get("autofilled_vals", {})
+
+        st.session_state["curr_vals"] = st.session_state.get(
+            "autofilled_vals", {})
         st.session_state["curr_pdf_bytes"] = self.fill_pdf_to_bytes()
 
     def update_values(self) -> None:
@@ -332,7 +341,8 @@ class StreamLitApp:
         After execution, remain on the query page.
         """
         updated = st.session_state.get("curr_vals", {}).copy()
-        for key in self.fields_map:
+        fields_map = self.form.get_fields_map()
+        for key in fields_map:
             updated[key] = {
                 "val": st.session_state.get(key, ""),
                 "notes": st.session_state.get(f"{key}_notes", ""),
@@ -357,8 +367,9 @@ class StreamLitApp:
                 pdf_template = PdfReader(template_file)
                 writer = PdfWriter()
 
+                fields_map_pdf = self.form.get_fields_map_pdf()
                 for idx, page in enumerate(pdf_template.pages):
-                    for key, field_name in self.fields_map_pdf.items():
+                    for key, field_name in fields_map_pdf.items():
                         if field_name:
                             val = updated.get(key, {}).get("val", "")
                             writer.update_page_form_field_values(
@@ -387,8 +398,12 @@ class StreamLitApp:
         mod_id = self.get_curr_mod()
 
         try:
-            response = requests.get(
-                "http://backend:8000/run", params={"mod_id": mod_id}
+            response = requests.post(
+                "http://backend:8000/run",
+                json={
+                    "mod_id": mod_id,
+                    "form": self.form.to_dict()  # Serialize the Form object to a dictionary
+                }
             )
             if response.status_code == 200:
                 try:

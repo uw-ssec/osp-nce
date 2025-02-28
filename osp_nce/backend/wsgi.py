@@ -6,6 +6,7 @@ import logging
 from osp_nce.backend.libs.sql_connector import SQLConnector
 from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
 from osp_nce.backend.libs.erm_autofiller import ERMAutofiller
+from osp_nce.shared.erm_form import Form
 import streamlit as st
 from typing import Dict
 from datetime import datetime
@@ -34,7 +35,7 @@ async def startup_event():
     app.state.sharepoint_connector = SharepointConnector(
         client_id=client_id, tenant_id=tenant_id
     )
-    logger.info("Initialized SQLConnector and SharepointConnector.")
+    logger.info("Initialized SQLConnector, SharepointConnector.")
 
 
 @app.on_event("shutdown")
@@ -89,14 +90,16 @@ async def acquire_access_token(
         return {"error": str(e)}
 
 
-@app.get("/run/")
+@app.post("/run/")
 async def run(
-    mod_id: str,
+    data: dict,
     sql_connector: SQLConnector = Depends(get_sql_connector),
     sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector),
 ) -> Dict[str, str]:
     try:
-        erm_autofiller = ERMAutofiller(mod_id, sql_connector, sharepoint_connector)
+        mod_id = data["mod_id"]
+        form = Form(input_data=data["form"])  # Deserialize the Form object from the dictionary
+        erm_autofiller = ERMAutofiller(mod_id, form, sql_connector, sharepoint_connector)
         erm_autofiller.autofill()
         return {"Data": erm_autofiller.to_json(), "Status": "200"}
     except Exception as e:
