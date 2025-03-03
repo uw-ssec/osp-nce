@@ -2,160 +2,35 @@ import json
 import re
 from datetime import datetime
 from io import BytesIO
-import time
 
-import streamlit as st
-import pandas as pd
 import requests
+import streamlit as st
 from PyPDF2 import PdfReader, PdfWriter
 
-from osp_nce.shared.erm_form import Form
+
+class AutofillError(Exception):
+    """
+    Exception raised for autofill retrieval failures.
+    """
+
+    pass
 
 
-def get_curr_filename() -> str:
-    mod_id = st.session_state.get("curr_mod", "")
-    pi_name = st.session_state.get("pi_name", "")
-    return (
-        f"Review_Matrix_{pi_name.replace(',', '_')}_{mod_id}_"
-        f"{datetime.now().strftime('%Y-%m-%d')}.pdf"
-    )
-
-
-def fetch_autofill(mod_id: str) -> bool:
-    try:
-        response = requests.post(
-            "http://backend:8000/run/",
-            json={
-                "mod_id": mod_id,
-                "form": st.session_state.form.to_dict(),  # Serialize the Form object to a dictionary
-            },
-        )
-        if response.status_code != 200:
-            try:
-                detail = response.json().get("detail", "Unknown error")
-            except json.JSONDecodeError:
-                detail = "No JSON to parse."
-            st.error(f"Error from server: {detail}")
-            return False
-
-        json_data = response.json()
-        data = json.loads(json_data.get("Data", None))
-        if data is None:
-            st.error("No 'Data' field in JSON response.")
-            return False
-
-        st.session_state["autofilled_vals"] = data
-        st.session_state["curr_vals"] = data.copy()
-        st.session_state["curr_pdf_bytes"] = fill_pdf_to_bytes()
-        return True
-
-    except requests.RequestException as exc:
-        st.error(f"Error connecting to server: {exc}")
-        return False
-    except (json.JSONDecodeError, TypeError) as e:
-        st.error(f"Error processing data: {e}")
-        return False
+# -------------------------------
+# Helpers and Callbacks
+# -------------------------------
 
 
 def is_valid_mod_id(mod_id: str) -> bool:
     """
-    Validate that the MOD ID is in the format 'MOD' followed by exactly 5 digits.
+    Check if the given MOD ID has the expected format: 'MOD' followed by 5 digits.
     """
     return bool(re.fullmatch(r"MOD\d{5}", mod_id))
 
 
-def instantiate_query_page() -> None:
-    placeholder = st.empty()
-    with placeholder.container():
-        st.title("Editable Form - Extension Review Matrix")
-        st.subheader("Enter a MOD ID to Prefill the Review Matrix")
-
-        mod_id_input = st.text_input(
-            "MOD/Worktag ID:", value="MOD", key="curr_mod_input"
-        )
-
-        def proceed_callback():
-            # Sanitize input: remove all spaces and convert to uppercase.
-            mod_id = mod_id_input.replace(" ", "").upper()
-            # If missing the "MOD" prefix, prepend it.
-            if not mod_id.startswith("MOD"):
-                mod_id = "MOD" + mod_id
-
-            # Validate the sanitized MOD ID.
-            if not is_valid_mod_id(mod_id):
-                st.warning(
-                    "Invalid MOD ID. It must be 'MOD' plus exactly 5 digits (e.g., MOD45982)."
-                )
-                return
-
-            if fetch_autofill(mod_id):
-                st.session_state["curr_mod"] = mod_id
-            else:
-                st.warning(
-                    "Autofill retrieval failed. Please try a different MOD ID or check the server."
-                )
-
-        st.button("Proceed", key="ProceedButtonLanding", on_click=proceed_callback)
-
-
-def fill_pdf_to_bytes() -> bytes:
-    """Create and return a new PDF containing the updated values as bytes."""
-    try:
-        updated = st.session_state.get("curr_vals", {})
-        template_path = "./assets/extension_review_matrix.pdf"
-        if not updated:
-            raise ValueError("'curr_vals' missing from state.")
-
-        with open(template_path, "rb") as template_file:
-            pdf_template = PdfReader(template_file)
-            writer = PdfWriter()
-
-            for idx, page in enumerate(pdf_template.pages):
-                for key, field_name in st.session_state.fields_map_pdf.items():
-                    if field_name:
-                        val = updated.get(key, {}).get("val", "")
-                        writer.update_page_form_field_values(page, {field_name: val})
-                writer.add_page(page)
-
-        pdf_bytes = BytesIO()
-        writer.write(pdf_bytes)
-        pdf_bytes.seek(0)
-
-        return pdf_bytes.getvalue()
-
-    except Exception as e:
-        st.error(f"An error occurred while creating the PDF: {e}")
-        return b""
-
-
-def instantiate_editable_form_page() -> None:
-    """
-    Displays the query page with update, download, and restore functions.
-
-    The values displayed are pulled from "curr_vals" in state, which reflect
-    the most recent user edits
-    """
-    placeholder = st.empty()
-    data = st.session_state.get("curr_vals", {})
-
-    with placeholder.container():
-        st.title("Editable Form - Extension Review Matrix")
-        _show_basic_info_fields(data)
-        if data.get("mod_id", {}).get("val", ""):
-            _show_review_fields(data)
-            _show_review_notes(data)
-
-        _show_utility_buttons()
-
-    # Autosave the updated values
-    autosave_values()
-
-
 def autosave_values() -> None:
     """
-    Autosave the filled entries from user input and save to session state.
-
-    This method is called whenever the form is displayed to ensure changes are saved.
+    Save the current user inputs into session state and regenerate the PDF bytes.
     """
     updated = st.session_state.get("curr_vals", {}).copy()
     for key in st.session_state.fields_map:
@@ -163,51 +38,166 @@ def autosave_values() -> None:
             "val": st.session_state.get(key, ""),
             "notes": st.session_state.get(f"{key}_notes", ""),
         }
-
     st.session_state["curr_vals"] = updated
     st.session_state["curr_pdf_bytes"] = fill_pdf_to_bytes()
 
 
-def _show_basic_info_fields(data: dict) -> None:
-    """Displays the MOD/Worktag ID and PI Name fields."""
+def new_mod() -> None:
+    """
+    Clear the current MOD from session state to trigger loading the query page.
+    """
+    st.session_state["curr_mod"] = ""
+
+
+def restore_autofiller_responses() -> None:
+    """
+    Revert current form values to the originally fetched autofilled responses.
+    """
+    st.session_state["curr_vals"] = st.session_state.get("autofilled_vals", {})
+    st.session_state["curr_pdf_bytes"] = fill_pdf_to_bytes()
+
+
+def fetch_autofill_data(mod_id: str, form_dict: dict) -> dict:
+    """
+    Send a POST request to retrieve autofill data for the given MOD ID.
+
+    Raises:
+        AutofillError: If any network errors or invalid responses are encountered.
+    """
+    url = "http://backend:8000/run/"
+    payload = {"mod_id": mod_id, "form": form_dict}
+    try:
+        response = requests.post(url, json=payload)
+    except requests.RequestException as exc:
+        raise AutofillError(f"Request failed: {exc}")
+
+    # If the response is not 200, build an error message and raise an AutofillError
+    if not response.ok:
+        message = f"Server responded with {response.status_code}."
+        try:
+            detail = response.json().get("detail")
+            if detail:
+                message += f" Detail: {detail}"
+        except json.JSONDecodeError:
+            message += " No JSON in error response."
+        raise AutofillError(message)
+
+    # Otherwise, attempt to parse the autofilled form fields
+    try:
+        data_str = response.json().get("Data", "")
+        if not data_str:
+            raise AutofillError("No 'Data' field in JSON response.")
+        autofiller_data = json.loads(data_str)
+    except (json.JSONDecodeError, TypeError) as e:
+        raise AutofillError(f"Error processing JSON 'Data': {e}")
+
+    return autofiller_data
+
+
+def get_curr_pdf() -> bytes:
+    """
+    Retrieve the latest PDF bytes from session state.
+    """
+    return st.session_state.get("curr_pdf_bytes", b"")
+
+
+# -------------------------------
+# PDF Fill / Generation
+# -------------------------------
+
+
+def get_curr_filename() -> str:
+    """
+    Construct a standardized filename for the PDF output.
+
+    Returns:
+        str: A filename of the form 'Review_Matrix_<PIName>_<MODID>_<YYYY-MM-DD>.pdf'.
+    """
+    mod_id = st.session_state.get("curr_mod", "")
+    pi_name = st.session_state.get("pi_name", "")
+    sanitized_pi_name = pi_name.replace(",", "_")
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    return f"Review_Matrix_{sanitized_pi_name}_{mod_id}_{current_date}.pdf"
+
+
+def fill_pdf_to_bytes() -> bytes:
+    """
+    Return a PDF (as bytes) populated with the current session values.
+
+    Raises:
+        ValueError: If 'curr_vals' is missing from session state.
+    """
+    try:
+        curr_vals = st.session_state.get("curr_vals", {})
+        if not curr_vals:
+            raise ValueError("'curr_vals' missing from session state.")
+
+        template_path = "./assets/extension_review_matrix.pdf"
+        with open(template_path, "rb") as template_file:
+            pdf_template = PdfReader(template_file)
+            writer = PdfWriter()
+
+            for page in pdf_template.pages:
+                for key, field_name in st.session_state.fields_map_pdf.items():
+                    if field_name:
+                        val = curr_vals.get(key, {}).get("val", "")
+                        writer.update_page_form_field_values(page, {field_name: val})
+                writer.add_page(page)
+
+        pdf_bytes = BytesIO()
+        writer.write(pdf_bytes)
+        pdf_bytes.seek(0)
+        return pdf_bytes.getvalue()
+
+    except Exception as e:
+        st.error(f"An error occurred while creating the PDF: {e}")
+        return b""
+
+
+# -------------------------------
+# Main Page Display (UI)
+# -------------------------------
+
+
+def show_basic_info_fields(data: dict) -> None:
+    """
+    Displays fields for MOD/Worktag ID and PI Name on the page.
+
+    Args:
+        data (dict): Current dictionary of values to display.
+    """
     col_left, col_right = st.columns(2)
     with col_left:
         st.text_input(
-            "MOD/Worktag ID:",
-            value=data.get("mod_id", {}).get("val", ""),
-            key="mod_id_form",
+            "MOD/Worktag ID:", value=data.get("mod_id", {}).get("val", ""), key="mod_id_form"
         )
     with col_right:
-        st.text_input(
-            "PI Name:",
-            value=data.get("pi_name", {}).get("val", ""),
-            key="pi_name_form",
-        )
+        st.text_input("PI Name:", value=data.get("pi_name", {}).get("val", ""), key="pi_name_form")
 
 
-def _show_review_fields(data: dict) -> None:
-    """Displays the fields except the 'review_notes' entry."""
-    fields_in_order = [
-        field for field in st.session_state.fields_map if field != "review_notes"
-    ]
+def show_review_fields(data: dict) -> None:
+    """
+    Displays the main Extension Review Matrix fields and associated notes.
+
+    Args:
+        data (dict): Current dictionary of values to display.
+    """
+    fields_in_order = [f for f in st.session_state.fields_map if f != "review_notes"]
 
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
-        st.subheader("**Review Items**")
+        st.subheader("Review Items")
     with col2:
-        st.subheader("**Action**")
+        st.subheader("Action")
     with col3:
-        st.subheader("**Notes**")
+        st.subheader("Notes")
 
+    # Display the editable form fields with helper text and autofiller notes
     for ri_field in fields_in_order:
         field_label = st.session_state.fields_map[ri_field]
         col1, col2, col3 = st.columns([2, 1, 2])
         with col1:
-            st.text_input(
-                field_label,
-                value=data.get(ri_field, {}).get("val", ""),
-                key=ri_field,
-            )
+            st.text_input(field_label, value=data.get(ri_field, {}).get("val", ""), key=ri_field)
         with col2:
             helper_text = st.session_state.fields.get(field_label, "")
             if helper_text:
@@ -220,130 +210,112 @@ def _show_review_fields(data: dict) -> None:
                 height=100,
             )
 
-
-def _show_review_notes(data: dict) -> None:
-    """Displays the 'review_notes' field at the bottom."""
-    review_key = "review_notes"
-    if review_key in st.session_state.fields_map:
+    # Display the editable autofiller review notes
+    if "review_notes" in st.session_state.fields_map:
         st.subheader("Review Notes")
         st.text_area(
             label=" ",
-            value=data.get(review_key, {}).get("val", ""),
-            key=review_key,
+            value=data.get("review_notes", {}).get("val", ""),
+            key="review_notes",
             height=300,
         )
 
 
-def _show_utility_buttons() -> None:
-    """Displays sidebar buttons for download, restore, and new mod."""
+def show_utility_buttons() -> None:
+    """
+    Display buttons for downloading the PDF, restoring autofill, and entering a new MOD.
+    """
     with st.sidebar:
         st.markdown("### Toolbar")
-        st.write("*Below you'll find options to reset or download your form data.*")
-
-        # Define a callback function for the download button
-        def download_callback():
-            autosave_values()
-            st.session_state["curr_pdf_bytes"] = fill_pdf_to_bytes()
+        st.write("Reset or download your form data below.")
 
         st.download_button(
             "Download PDF",
-            data=get_pdf_bytes(),
+            data=get_curr_pdf(),
             file_name=get_curr_filename(),
             key="DownloadPDFButton",
-            help="Generate and download a filled-out PDF form based on your last save.",
             use_container_width=True,
-            on_click=download_callback,
         )
         st.button(
             "Restore Autofill",
             key="RestoreAutofiller",
             on_click=restore_autofiller_responses,
-            help="Undo any changes you've made and revert to the original autofilled responses.",
+            help="Undo all changes back to autofilled responses.",
             use_container_width=True,
         )
         st.button(
             "New Mod",
             key="NewMod",
             on_click=new_mod,
-            help="Return to the landing page to enter a different MOD/Worktag ID.",
+            help="Enter a different MOD/Worktag ID.",
             use_container_width=True,
         )
 
 
-def get_pdf_bytes() -> bytes:
-    """Generate and return the PDF bytes."""
-    autosave_values()
-    return st.session_state.get("curr_pdf_bytes", b"")
-
-
-def new_mod() -> None:
-    """Switch back to landing page."""
-    # TODO: Reset the state before transition
-    st.session_state["curr_mod"] = ""
-
-
-def restore_autofiller_responses() -> None:
-    """Revert to original autofiller responses."""
-    st.session_state["curr_vals"] = st.session_state.get("autofilled_vals", {})
-    st.session_state["curr_pdf_bytes"] = fill_pdf_to_bytes()
-
-
-def update_values() -> None:
+def display_editable_form_page() -> None:
     """
-    Update the filled entries from user input and save to session state.
+    Display a user-editable Extension Review Matrix with autofilled fields.
 
-    After execution, remain on the query page.
+    Notes:
+        Only called  when a valid `curr_mod` is present in session state.
     """
-    updated = st.session_state.get("curr_vals", {}).copy()
-    for key in st.session_state.fields_map:
-        updated[key] = {
-            "val": st.session_state.get(key, ""),
-            "notes": st.session_state.get(f"{key}_notes", ""),
-        }
+    placeholder = st.empty()
+    curr_vals = st.session_state.get("curr_vals", {})
 
-    st.session_state["curr_vals"] = updated
-    st.session_state["curr_pdf_bytes"] = fill_pdf_to_bytes()
-    st.session_state["page"] = "query"
+    with placeholder.container():
+        st.title("Editable Form - Extension Review Matrix")
+        show_basic_info_fields(curr_vals)
+        show_review_fields(curr_vals)
+        autosave_values()
+        show_utility_buttons()
 
 
-#
-# --------------------- PDF DOWNLOAD ---------------------
-#
-def fill_pdf_to_bytes() -> bytes:
-    """Create and return a new PDF containing the updated values as bytes."""
-    try:
-        updated = st.session_state.get("curr_vals", {})
-        template_path = "./assets/extension_review_matrix.pdf"
-        if not updated:
-            raise ValueError("'curr_vals' missing from state.")
+def display_query_page() -> None:
+    """
+    Display a page where the user can input a MOD ID to fetch autofilled form data.
 
-        with open(template_path, "rb") as template_file:
-            pdf_template = PdfReader(template_file)
-            writer = PdfWriter()
+    Notes:
+        Only called when there is no "curr_mod" under consideration.
+    """
+    placeholder = st.empty()
+    with placeholder.container():
+        st.title("Editable Form - Extension Review Matrix")
+        st.subheader("Enter a MOD/Worktag ID to Prefill the Review Matrix")
 
-            for idx, page in enumerate(pdf_template.pages):
-                for key, field_name in st.session_state.fields_map_pdf.items():
-                    if field_name:
-                        val = updated.get(key, {}).get("val", "")
-                        writer.update_page_form_field_values(page, {field_name: val})
-                writer.add_page(page)
+        mod_id_input = st.text_input("MOD/Worktag ID:", value="MOD", key="curr_mod_input")
 
-        pdf_bytes = BytesIO()
-        writer.write(pdf_bytes)
-        pdf_bytes.seek(0)
+        def process_input_and_autofill():
+            # Sanitize and validate the user inputted MOD ID
+            mod_id = mod_id_input.replace(" ", "").upper()
+            if not mod_id.startswith("MOD"):
+                mod_id = "MOD" + mod_id
+            if not is_valid_mod_id(mod_id):
+                st.warning("Invalid MOD ID. Must be 'MOD' plus exactly 5 digits.")
+                return
 
-        return pdf_bytes.getvalue()
+            # Fetch autofiller response
+            try:
+                data = fetch_autofill_data(mod_id, st.session_state.form.to_dict())
+            except AutofillError as e:
+                st.warning(f"Autofill retrieval failed: {e}")
+                return
 
-    except Exception as e:
-        st.error(f"An error occurred while creating the PDF: {e}")
-        return b""
+            st.session_state["curr_mod"] = mod_id
+            st.session_state["autofilled_vals"] = data
+            st.session_state["curr_vals"] = data.copy()
+            st.session_state["curr_pdf_bytes"] = fill_pdf_to_bytes()
+
+        st.button("Proceed", key="ProceedButtonLanding", on_click=process_input_and_autofill)
 
 
 def run():
+    """
+    Determine which page to display based on the current session state.
+    """
     if not st.session_state.get("curr_mod", ""):
-        instantiate_query_page()
+        display_query_page()
     else:
-        instantiate_editable_form_page()
+        display_editable_form_page()
 
 
 if __name__ == "__page__":

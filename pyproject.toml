@@ -41,4 +41,4 @@ pythonpath = "osp_nce"
 addopts = "-v"
 
 [tool.black]
-line-length = 88
+line-length = 100
