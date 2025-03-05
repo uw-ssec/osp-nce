@@ -1,0 +1,20 @@
+{
+    "ri1": "SFI Current?",
+    "ri2": "Remaining Balance $$",
+    "ri3": "Is the award in deficit?",
+    "ri4": "Is the balance greater than 25% of the total award?",
+    "ri5": "Award lines listed or 'extend all' indicated?",
+    "ri6": "Temporary Request?",
+    "ri7": "New Cost Share?",
+    "ri8": "Human Subjects?",
+    "ri9": "Animal Use?",
+    "ri10": "Prior Approval required?",
+    "ri11": "Has the project previously been extended? Is this an NIH 2nd+ extension?",
+    "ri12": "Is the request to extend within Sponsor’s required timeframe?",
+    "ri13": "Is this a federal contract?",
+    "ri14": "FAR clause 52.222-54 (e-verify)?",
+    "ri15": "Fixed Price terms?",
+    "ri16": "Paid in full?",
+    "ri17": "All deliverables submitted?",
+    "review_notes": "Review Notes"
+}
