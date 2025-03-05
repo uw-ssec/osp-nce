@@ -34,8 +34,6 @@ class SQLConnector:
         self.server = server
         self.database = database
         self.driver = driver
-        
-        print(f"Connecting to {self.server} on database {self.database} as {self.user}")
 
         # Build the SQLAlchemy connection URL
         connection_url = sqlalchemy.engine.url.URL.create(
@@ -45,11 +43,6 @@ class SQLConnector:
             host=self.server,
             database=self.database,
         )
-        
-        print(self.password)
-        
-        # Log the connection URL for debugging
-        print(f"Connection URL: {connection_url}")
 
         # Intialize the query engine
         self.engine = sqlalchemy.create_engine(connection_url)

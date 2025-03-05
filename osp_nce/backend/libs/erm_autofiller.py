@@ -525,6 +525,8 @@ class ERMAutofiller:
         rad_value = self.data_rad["isAnimalUse"]["value"]
         sharepoint_source = self.data_sharepoint["AnimalResearchDone"]["source"]
         sharepoint_value = self.data_sharepoint["AnimalResearchDone"]["value"]
+        
+        print(is_animal_use_rad, is_animal_use_ext)
 
         if is_animal_use_rad[0] == is_animal_use_ext[0]:
             reported_animal_use = self._is_yes(is_animal_use_rad)
@@ -539,7 +541,7 @@ class ERMAutofiller:
             )
 
         return {
-            "val": self._tf_to_yn(reported_animal_use[0] == "Yes"),
+            "val": self._tf_to_yn(reported_animal_use[0] == "Y"),
             "notes": notes,
         }
 
