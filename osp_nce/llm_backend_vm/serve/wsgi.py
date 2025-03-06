@@ -1,21 +1,27 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from libs.retriever.retriever import Retriever
 from langchain.schema import Document
-# from libs.generator import Generator
-# from libs.model_loader import ModelLoader
+import traceback
+from libs.models.language_model import LanguageModel
 
-# generator = Generator() 
-# model_loader = ModelLoader()
 
-app = FastAPI() 
+app = FastAPI(title = "RAG Application") 
 
-# Define request model for retrieval
+# Global model instance (lazy-loaded)
+MODEL_INSTANCES = {}
+
 class RetrieveRequest(BaseModel):
-    documents: List[Dict[str,Any]]
+    documents: Optional[List[Dict[str,Any]]] = []
     query: str
+    existing_collection: Optional[str] = None
+    existing_qdrant_path: Optional[str] = None
     embedding_model: str
+
+class GenerationRequest(BaseModel):
+    prompt: str
+    generation_model: str
 
 def json_to_document(json_data):
     """Convert JSON dict to LangChain Document object."""
@@ -27,15 +33,23 @@ def json_to_document(json_data):
 @app.post("/retrieve/")
 async def retrieve(request: RetrieveRequest):
     try:
-        documents = [json_to_document(doc) for doc in request.documents]
-        retriever = Retriever(model_name = request.embedding_model)
-        retriever.create_vector_store(documents, collection_name="temp_collection")
+        if request.documents:
+            documents = [json_to_document(doc) for doc in request.documents]
+            retriever = Retriever(model_name = request.embedding_model)
+            retriever.create_vector_store(documents, collection_name="temp_collection")
+        elif request.existing_collection and request.existing_qdrant_path:
+            retriever = Retriever(model_name = request.embedding_model)
+            retriever.get_vector_store(qdrant_path=request.existing_qdrant_path, collection_name=request.existing_collection)
+        else:
+            raise ValueError("No documents or existing collection provided for retrieval.")
+        
         relevant_docs = retriever.retrieve_docs(request.query)
+        
         # Format response properly
         response_data = [
             {
                 "metadata": doc.metadata,
-                "page_content": doc.page_content[:500]  # Limit content preview
+                "page_content": doc.page_content
             }
             for doc in relevant_docs
         ]
@@ -43,34 +57,31 @@ async def retrieve(request: RetrieveRequest):
         return {"docs": response_data, "status_code": 200}
 
     except Exception as e:
+        print("Error in retrieval:", str(e))  # Print error to logs
+        print(traceback.format_exc())  # Print full traceback
         return {"docs" : [], "status_code" : 500, "error": str(e)}
 
 
-# @app.get("/chat")
-# async def chat():
-#     params = {prompt_str, model_choice}
-#     model = model_loader.load(model_choice)
-#     generator.model = model
-#     answer = generator.invoke(prompt_str)
-#     return answer
+def get_model(generation_model):
+    """
+    Retrieve or create a cached instance of the language model.
+    """
+    if generation_model not in MODEL_INSTANCES:
+        MODEL_INSTANCES[generation_model] = LanguageModel(model_name=generation_model, quantization="8bit")
+        MODEL_INSTANCES[generation_model].load_language_model()
+        MODEL_INSTANCES[generation_model].load_hg_pipeline()
+    return MODEL_INSTANCES[generation_model]
 
-# @app.get("/load_model")
-# async def add_model():
-#     params = {model_name_on_hugging_face}
-#     model_loader.download(model_name_on_hugging_face)
-#     return {"status": status}
+@app.post("/generate/")
+async def generate(request: GenerationRequest):
+    try:
+        model = get_model(request.generation_model)
+        response = model.inference(request.prompt)
+        return {"answer": response, "status_code": 200} 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
-
-# ## MOCKUP STREAMLIT INTERACTION
-# # -> User uploads document
-
-# # pdf.read(document)
-# # json serialization code 
-
-# # relevant_docs = requests.get("vm_endpoint/retrieve", {serialized_json, query})
-
-# # Render docs (Please select the most relevant page)
-
-# # Prompt Processing 
-# # prompt_str = System Prompt + relevant_docs + query + (Any chat history we want to send)
-# # answer = requests.get("vm_endpoint/chat", {prompt_str})
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8500, reload=True)
