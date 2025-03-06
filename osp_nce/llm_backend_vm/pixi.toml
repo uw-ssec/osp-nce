@@ -1,11 +1,14 @@
 [project]
 name = "rubin-rag"
 version = "0.1.0"
-description = "LLM Backend"
-authors = ["Sheera Apoorva <asheera@uw.edu>"]
+description = "Rubin Telescope Chatbot"
+authors = ["Landung 'Don' Setiawan <landungs@uw.edu>"]
 channels = ["conda-forge", "pytorch"]
 platforms = ["linux-64"]
 
+[tasks]
+start-jlab = {cmd = "jupyter lab", description = "Start Jupyter Lab"}
+serve-panel ={cmd = "python rubin-chat/rubin-panel-app.py", description = "Serve the panel app"}
 
 [dependencies]
 python = "3.11.*"
@@ -21,8 +24,8 @@ ipykernel = ">=6.29.5,<6.30"
 docker-py = ">=7.1.0,<7.2"
 testcontainers = ">=4.8.0,<4.9"
 tenacity = "==8.5.0"
-fastapi = ">=0.115.8,<0.116"
-pydantic = ">=2.10.6,<3"
+pytest = ">=8.3.5,<9"
+fastapi = ">=0.115.11,<0.116"
 
 [pypi-dependencies]
 langchain = "==0.2.3"
@@ -45,6 +48,12 @@ llama-cpp-python = {url = "https://github.com/abetlen/llama-cpp-python/releases/
 
 [feature.frontend.dependencies]
 streamlit = "*"
+tenacity = "==8.5.0"
+
+[feature.frontend.pypi-dependencies]
+langchain = "==0.2.3"
+langchain-community = "==0.2.4"
+pymupdf = ">=1.24.10, <1.25"
 
 [environments]
 frontend = { features = ["frontend"], no-default-feature = true }
