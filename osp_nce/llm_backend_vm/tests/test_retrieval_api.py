@@ -1,64 +1,57 @@
-from pathlib import Path
-import requests
-import json
-from langchain.document_loaders import PyMuPDFLoader
+import pytest
+import httpx
+from fastapi.testclient import TestClient
+from serve.wsgi import app
 
-def load_documents(pdf_folder: Path):
-    """Loads PDFs from a given folder and extracts text."""
-    documents = []
-    for file in pdf_folder.glob("*.pdf"):
-        loader = PyMuPDFLoader(str(file))
-        docs = loader.load()
-        for doc in docs:
-            documents.append({
-                "page_content": doc.page_content,
-                "metadata": doc.metadata  # Keep metadata intact
-            })
-    return documents
+client = TestClient(app)
 
-# Define API URL (update if running on a different port or host)
-API_URL = "http://localhost:8000/retrieve/"
+# Sample documents for testing
+sample_documents = [
+    {
+        "page_content": "FastAPI is a modern web framework for building APIs with Python.",
+        "metadata": {"source": "doc1", "author": "John Doe"}
+    },
+    {
+        "page_content": "Vector databases are optimized for similarity search using embeddings.",
+        "metadata": {"source": "doc2", "author": "Jane Smith"}
+    }
+]
 
-pdf_folder = Path("data/raw/test")
+# Define test cases
+@pytest.mark.parametrize("query,expected_status", [
+    ("What is FastAPI?", 200),
+    ("Explain vector databases", 200),
+])
+def test_retrieve_endpoint(query, expected_status):
+    """
+    Test the retrieval API endpoint.
+    """
+    payload = {
+        "documents": sample_documents,
+        "query": query,
+        "existing_collection": None,
+        "existing_qdrant_path": None,
+        "embedding_model": "sentence-transformers/all-MiniLM-L12-v2"
+    }
 
-# Load documents
-documents = load_documents(pdf_folder)
+    response = client.post("/retrieve/", json=payload)
 
-if not documents:
-    print("❌ No documents found in the folder.")
-    exit()
+    # Debugging: Print the full response in case of failure
+    print("Response Status:", response.status_code)
+    print("Response JSON:", response.json())
+    
+    assert response.status_code == expected_status
+    assert "docs" in response.json()
+    assert isinstance(response.json()["docs"], list)
+    assert response.json()["status_code"] == 200
 
-# Define test query
-test_query = "When do you need to make an extension?"
+    retrieved_docs = response.json()["docs"]
+    assert len(retrieved_docs) > 0  # Ensure that some documents are retrieved
 
-# Define embedding model
-embedding_model = "sentence-transformers/all-MiniLM-L12-v2"
+    for doc in retrieved_docs:
+        assert "metadata" in doc
+        assert "page_content" in doc
+        assert len(doc["page_content"]) > 0  # Check content preview is non-empty
 
-# Construct request payload (ensuring documents are correctly formatted)
-payload = {
-    "documents": documents,  # List of document JSONs
-    "query": test_query,
-    "embedding_model": embedding_model
-}
-
-# Send POST request
-try:
-    response = requests.post(API_URL, json=payload)
-    response.raise_for_status()  # Raises error if response status is not 2xx
-
-    # Parse response
-    response_data = response.json()
-    retrieved_docs = response_data.get("docs", [])
-    status_code = response_data.get("status_code", 500)
-
-    if status_code == 200:
-        print("\n✅ Successfully retrieved documents:")
-        for i, doc in enumerate(retrieved_docs):
-            print(f"\n--- Document {i+1} ---")
-            print(f"📄 Metadata: {doc.get('metadata', {})}")
-            print(f"\n🔍 Content Preview:\n{doc.get('page_content', '')[:500]}...\n")
-    else:
-        print(f"❌ Retrieval failed with error: {response_data.get('error', 'Unknown error')}")
-
-except requests.exceptions.RequestException as e:
-    print(f"❌ API request failed: {e}")
+if __name__ == "__main__":
+    pytest.main()

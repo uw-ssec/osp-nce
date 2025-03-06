@@ -1,5 +1,4 @@
 from pathlib import Path
-from src.libs.embeddings.embedding_model import get_embedding_model
 from libs.retriever.retriever import Retriever  # Adjust path based on your module structure
 from langchain.document_loaders import PyMuPDFLoader
 
@@ -9,18 +8,13 @@ def load_documents(pdf_folder: Path):
     documents = []
     for file in pdf_folder.glob("*.pdf"):
         loader = PyMuPDFLoader(str(file))
-        docs = loader.load()
-        for doc in docs:
-            documents.append({
-                "page_content": doc.page_content,
-                "metadata": doc.metadata  # Keep metadata intact
-            })
+        documents.extend(loader.load())
     return documents
 
 # Test function
 def test_retriever():
     # Path to test PDFs
-    pdf_folder = Path("src/libs/data/raw/test/")
+    pdf_folder = Path("data/raw/test/")
 
     # Load documents
     documents = load_documents(pdf_folder)
@@ -29,6 +23,8 @@ def test_retriever():
         print("No documents found in the test directory.")
         return
 
+    # Print datatype of documents
+    print(f"Datatype of documents: {type(documents)}")
     # Initialize Retriever
     model_name = "sentence-transformers/all-MiniLM-L12-v2"  # Change this to the actual model
     retriever = Retriever(model_name=model_name)
@@ -37,7 +33,7 @@ def test_retriever():
     retriever.create_vector_store(documents, collection_name="test_collection")
 
     # Sample query
-    query = "When do you need to make ane extension?"
+    query = "When do you need to make an extension?"
     retrieved_docs = retriever.retrieve_docs(query)
 
     print("\n🔍 Retrieved Documents:")
