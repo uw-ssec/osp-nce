@@ -1,7 +1,9 @@
 from pathlib import Path
+import os
 from langchain_qdrant import Qdrant
 from qdrant_client import QdrantClient
-from libs.embeddings.embedding_model import get_embedding_model
+from libs.models.embedding_model import get_embedding_model
+import shutil
 
 class Retriever:
     def __init__(self, model_name: str = None, qdrant_path: str = None, collection_name: str = None):
@@ -15,7 +17,8 @@ class Retriever:
             db (Qdrant, optional): Qdrant instance.
         """
         self.model_name = model_name
-        self.embedding = get_embedding_model(self.model_name)
+        self.embedding = get_embedding_model(model_name)
+        
         self.qdrant_path = None
         self.collection_name = None
         self.db = None
@@ -32,6 +35,17 @@ class Retriever:
         """
         if not documents:
             raise ValueError("No documents provided for vector store creation.")
+        
+        # Delete temp_collection before recreating
+        if collection_name == "temp_collection" and os.path.exists("data/vector_stores/temp_collection"):
+            try:
+                client = QdrantClient(path="data/vector_stores/temp_collection") 
+                client.delete_collection(collection_name)
+                print(f"Deleted existing collection '{collection_name}'.")
+                shutil.rmtree(Path("data/vector_stores") / collection_name, ignore_errors=True)
+                client.close()
+            except Exception as e:
+                print(f"Warning: Could not delete collection '{collection_name}'. Error: {str(e)}")
 
         print(f"Creating new Qdrant collection '{collection_name}' with {len(documents)} documents using '{self.model_name}'.")
 
@@ -45,6 +59,7 @@ class Retriever:
             path=str(self.qdrant_path),
             collection_name=self.collection_name,
         )
+
         return self.db
 
     def get_vector_store(self, qdrant_path: str = None, collection_name: str = None):
@@ -65,6 +80,7 @@ class Retriever:
 
         client = QdrantClient(path=str(self.qdrant_path))
         self.db = Qdrant(client=client, collection_name=self.collection_name, embeddings=self.embedding)
+        
         return self.db
 
     def retrieve_docs(self, query: str):
@@ -85,4 +101,3 @@ class Retriever:
             search_kwargs={"k": 2},
         )
         return retriever.invoke(query)
-
