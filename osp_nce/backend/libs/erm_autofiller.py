@@ -539,7 +539,7 @@ class ERMAutofiller:
             )
 
         return {
-            "val": self._tf_to_yn(reported_animal_use[0] == "Yes"),
+            "val": self._tf_to_yn(reported_animal_use[0] == "Y"),
             "notes": notes,
         }
 
