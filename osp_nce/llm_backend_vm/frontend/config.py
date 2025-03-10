@@ -1,7 +1,7 @@
 import textwrap
 
 # API Base URL
-API_BASE_URL = "http://localhost:8000"
+API_BASE_URL = "http://llm_backend:5000"
 
 # Embedding model used for retrieval
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L12-v2"
