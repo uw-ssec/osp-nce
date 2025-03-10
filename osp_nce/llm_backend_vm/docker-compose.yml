@@ -1,0 +1,15 @@
+services:
+  llm_backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    ports:
+      - "5000:5000"   
+      - "8501:8501"    
+    privileged: true
+    gpus: all
+    security_opt:
+      - seccomp=unconfined
+    environment:
+      - PYTHONPATH=/app

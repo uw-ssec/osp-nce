@@ -10,16 +10,16 @@ FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
 # Install basic apt packages
 RUN echo "Installing Apt-get packages..." \
     && apt-get update --fix-missing > /dev/null \
-    && apt-get install -y wget zip tzdata curl git ca-certificates > /dev/null \
+    && apt-get install -y wget zip tzdata curl git ca-certificates python3 python3-pip > /dev/null \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Pixi manually 
 RUN curl -fsSL https://pixi.sh/install.sh | bash
 
-# # Ensure NVIDIA runtime support is available
-# RUN echo "Installing NVIDIA Container Toolkit requirements..." \
-#     && apt-get update && apt-get install -y nvidia-container-toolkit nvidia-cuda-toolkit
+# # Install Poetry 
+# RUN curl -sSL https://install.python-poetry.org | python3 -
+# ENV PATH="/root/.local/bin:$PATH"
 
 # Install Docker
 # Add Docker's official GPG key:
