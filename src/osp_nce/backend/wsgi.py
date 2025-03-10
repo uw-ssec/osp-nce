@@ -1,16 +1,13 @@
-import sys
-import uvicorn
-import os
 import logging
-
-from osp_nce.backend.libs.sql_connector import SQLConnector
-from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
-from osp_nce.backend.libs.erm_autofiller import ERMAutofiller
-from osp_nce.shared.erm_form import Form
-import streamlit as st
-from typing import Dict
+import os
 from datetime import datetime
-from fastapi import FastAPI, Depends
+
+import uvicorn
+from fastapi import Depends, FastAPI
+
+from osp_nce.backend.libs.autofiller import ERMAutoFiller
+from osp_nce.backend.libs.sharepoint_connector import SharepointConnector
+from osp_nce.backend.libs.sql_connector import SQLConnector
 
 logger = logging.getLogger(__name__)
 
@@ -28,20 +25,23 @@ app = FastAPI()
 
 
 @app.on_event("startup")
-async def startup_event():
-    """Initialize connectors at startup."""
+async def startup_event() -> None:
+    """
+    Initialize data connectors for RAD and sharepoint on startup
+
+    """
     app.state.sql_connector = SQLConnector(
         user=db_user, password=db_password, server=db_server, database=db_name
     )
-    app.state.sharepoint_connector = SharepointConnector(
-        client_id=client_id, tenant_id=tenant_id
-    )
+    app.state.sharepoint_connector = SharepointConnector(client_id=client_id, tenant_id=tenant_id)
     logger.info("Initialized SQLConnector, SharepointConnector.")
 
 
 @app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup resources at shutdown."""
+async def shutdown_event() -> None:
+    """
+    Cleanup resources at shutdown.
+    """
     if hasattr(app.state, "sql_connector"):
         app.state.sql_connector.close()  # Ensure proper cleanup
     logger.info("Cleaned up resources.")
@@ -58,53 +58,54 @@ def get_sharepoint_connector():
 
 
 @app.get("/ping/")
-async def ping() -> Dict[str, str]:
+async def ping() -> dict[str, str]:
     health = True
     status = 200 if health else 404
-    message = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Status Code {status}, health check {'passed' if health else 'failed'}"
+    message = (
+        f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Status Code {status},"
+        f" health check {'passed' if health else 'failed'}."
+    )
     return {"message": message}
 
 
 @app.get("/prompt_azure_mfa/")
 async def prompt_azure_mfa(
-    sharepoint_connector: SharepointConnector = Depends(
-        get_sharepoint_connector,
-    )
-) -> Dict[str, str]:
+    sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector),
+) -> dict[str, str]:
     try:
         auth_message = sharepoint_connector.prompt_user()
         return {"auth_message": auth_message, "Status": "200"}
     except Exception as e:
-        logger.error(f"Error occurred: {str(e)}")
+        logger.error(f"Error in prompting MFA: {str(e)}")
         return {"error": str(e)}
 
 
 @app.get("/acquire_access_token/")
 async def acquire_access_token(
     sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     try:
         sharepoint_connector.acquire_token()
         return {"Status": "200"}
     except Exception as e:
-        logger.error(f"Error occurred: {str(e)}")
+        logger.error(f"Error in acquiring token: {e}")
         return {"error": str(e)}
 
 
-@app.post("/run/")
-async def run(
+@app.post("/autofill_erm/")
+async def autofill_erm(
     data: dict,
     sql_connector: SQLConnector = Depends(get_sql_connector),
     sharepoint_connector: SharepointConnector = Depends(get_sharepoint_connector),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     try:
         mod_id = data["mod_id"]
-        form = Form(input_data=data["form"])  # Deserialize the Form object from the dictionary
-        erm_autofiller = ERMAutofiller(mod_id, form, sql_connector, sharepoint_connector)
+        erm_autofiller = ERMAutoFiller(mod_id, sql_connector, sharepoint_connector)
         erm_autofiller.autofill()
+        # print(f"AUTOFILL: {erm_autofiller.to_dict()}")
         return {"Data": erm_autofiller.to_json(), "Status": "200"}
     except Exception as e:
-        logger.error(f"Error occurred: {str(e)}")
+        logger.error(f"Error in autofilling ERM: {e}")
         return {"error": str(e)}
 
 

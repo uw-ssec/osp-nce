@@ -1,7 +1,7 @@
 import requests
 import streamlit as st
 
-from osp_nce.shared.erm_form import Form
+from osp_nce.shared.forms import ExtensionReviewMatrix
 
 
 def request_device_flow_code() -> None:
@@ -38,15 +38,9 @@ def display_login_page() -> None:
     """
     Display the landing page for Microsoft device flow authentication.
     """
-    form = Form()
-    st.session_state["form"] = form
-    st.session_state["fields"] = form.get_fields()
-    st.session_state["fields_map"] = form.get_fields_map()
-    st.session_state["fields_map_pdf"] = form.get_fields_map_pdf()
-
     placeholder = st.empty()
     with placeholder.container():
-        st.title("Get your Login Code to Start Automatic Form-Filling.")
+        st.title("Get Your Login Code to Start Automatic Form-Filling")
         st.button("Get Code", key="requested_code", on_click=request_device_flow_code)
 
         auth_message = st.session_state.get("auth_message", "")
@@ -67,7 +61,7 @@ def logout() -> None:
     st.rerun()
 
 
-def run():
+def run() -> None:
     """
     Configure the app layout, define page navigation, and render the current page.
     """
@@ -82,7 +76,11 @@ def run():
         },
     )
 
-    # Define the main app pages
+    # Intialize an ExtensionReviewMatrix on the first run
+    if "erm" not in st.session_state:
+        st.session_state["erm"] = ExtensionReviewMatrix()
+
+    # Define the main app pages from callables/scripts
     login_page = st.Page(display_login_page, title="Log in", icon=":material/login:")
     logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
     form_page = st.Page("form_page.py", title="Editable Form", icon=":material/person_edit:")
