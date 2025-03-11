@@ -24,8 +24,7 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --no-root
 
 # Now install project as a local package
-COPY assets/ ./assets/
-COPY osp_nce/ ./osp_nce/
+COPY src/ ./src/
 RUN poetry install
 
 # Clear Poetry cache to reduce image size
@@ -34,12 +33,15 @@ RUN poetry cache clear --all pypi
 # Ensure logs are flushed to stdout immediately
 ENV PYTHONUNBUFFERED=1
 
+# Run the following layers using poetry
+ENTRYPOINT ["poetry", "run"]
+
 # Frontend
 FROM base AS streamlit
 EXPOSE 8501
-CMD ["poetry", "run", "streamlit", "run", "./osp_nce/frontend/app.py", "--server.port", "8501"]
+CMD ["streamlit", "run", "src/osp_nce/frontend/app.py", "--server.port", "8501"]
 
 # Backend
 FROM base AS fastapi
 EXPOSE 8000
-CMD ["poetry", "run", "uvicorn", "osp_nce.backend.wsgi:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "osp_nce.backend.wsgi:app", "--host", "0.0.0.0", "--port", "8000"]

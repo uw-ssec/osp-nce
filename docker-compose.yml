@@ -7,9 +7,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./osp_nce/backend:/app/osp_nce/backend
-      - ./osp_nce/shared:/app/osp_nce/shared
-      - ./osp_nce/sql:/app/osp_nce/sql
+      - ./src/osp_nce/backend:/app/src/osp_nce/backend
+      - ./src/osp_nce/shared:/app/src/osp_nce/shared
     env_file:
       - ./.env
   frontend:
@@ -20,9 +19,8 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./osp_nce/frontend:/app/osp_nce/frontend
-      - ./osp_nce/shared:/app/osp_nce/shared
-      - ./assets:/app/assets
+      - ./src/osp_nce/frontend:/app/src/osp_nce/frontend
+      - ./src/osp_nce/shared:/app/src/osp_nce/shared
     env_file:
       - ./.env
     depends_on:
