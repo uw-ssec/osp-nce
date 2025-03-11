@@ -1,0 +1,142 @@
+{
+    "pi_name": {
+        "display_name": "PI Name",
+        "internal_name": "PI Name",
+        "helper_text": "",
+        "value": "",
+        "notes": ""
+    },
+    "mod_id": {
+        "display_name": "MOD/Worktag ID",
+        "internal_name": "MOD/Worktag ID",
+        "helper_text": "",
+        "value": "",
+        "notes": ""
+    },
+    "ri1": {
+        "display_name": "SFI Current?",
+        "internal_name": "SFI",
+        "helper_text": "No - Send email to research@uw.edu for review.",
+        "value": "",
+        "notes": ""
+    },
+    "ri2": {
+        "display_name": "Remaining Balance $$",
+        "internal_name": "RemBal",
+        "helper_text": "Check Award Portal for award balance.",
+        "value": "",
+        "notes": ""
+    },
+    "ri3": {
+        "display_name": "Is the award in deficit?",
+        "internal_name": "Deficit?",
+        "helper_text": "Yes - PI must explain deficit & transfer costs to appropriate non-federal, non-sponsored departmental worktag or provide Sponsor assurance that further funding is forthcoming.",
+        "value": "",
+        "notes": ""
+    },
+    "ri4": {
+        "display_name": "Is the balance greater than 25% of the total award?",
+        "internal_name": "Greater than 25%?",
+        "helper_text": "Yes - PI must provide a programmatic explanation for a large balance.",
+        "value": "",
+        "notes": ""
+    },
+    "ri5": {
+        "display_name": "Award lines listed or 'extend all' indicated?",
+        "internal_name": "Award lines",
+        "helper_text": "Note in MOD Comments which award lines are to be extended if campus so indicates.",
+        "value": "",
+        "notes": ""
+    },
+    "ri6": {
+        "display_name": "Temporary Request?",
+        "internal_name": "TempReq",
+        "helper_text": "Include non-sponsored departmental worktag in MOD Comments & History.",
+        "value": "",
+        "notes": ""
+    },
+    "ri7": {
+        "display_name": "New Cost Share?",
+        "internal_name": "CostShare",
+        "helper_text": "Yes - Attach revised CS Addendum to MOD.",
+        "value": "",
+        "notes": ""
+    },
+    "ri8": {
+        "display_name": "Human Subjects?",
+        "internal_name": "HumSub",
+        "helper_text": "Yes - Verify and document IRB approval(s). Refer to Human Subjects Review Guidance.",
+        "value": "",
+        "notes": ""
+    },
+    "ri9": {
+        "display_name": "Animal Use?",
+        "internal_name": "AnimalUse",
+        "helper_text": "Yes - Verify and document IACUC approval(s). Refer to Animal Use Compliance Verification guidance.",
+        "value": "",
+        "notes": ""
+    },
+    "ri10": {
+        "display_name": "Prior Approval required?",
+        "internal_name": "PriorApp",
+        "helper_text": "Federal award - Review Federal-Wide Research Terms & Conditions (RTCs) Prior Approval Matrix, Appendix A to confirm whether the award requires prior approval.",
+        "value": "",
+        "notes": ""
+    },
+    "ri11": {
+        "display_name": "Has the project previously been extended? Is this an NIH 2nd+ extension?",
+        "internal_name": "PrevExt?",
+        "helper_text": "Yes - Ensure that the Budget, Progress Report, and Programmatic Justification are included as 3 separate PDFs.",
+        "value": "",
+        "notes": ""
+    },
+    "ri12": {
+        "display_name": "Is the request to extend within Sponsor’s required timeframe?",
+        "internal_name": "ExtendInTime?",
+        "helper_text": "No - Extension requires Sponsor approval.",
+        "value": "",
+        "notes": ""
+    },
+    "ri13": {
+        "display_name": "Is this a federal contract?",
+        "internal_name": "FedContract?",
+        "helper_text": "Yes - Extension requires Sponsor approval.",
+        "value": "",
+        "notes": ""
+    },
+    "ri14": {
+        "display_name": "FAR clause 52.222-54 (e-verify)?",
+        "internal_name": "FAR clause 5222254",
+        "helper_text": "Yes - Forward E-verify process to your campus contact & state in MOD comments that e-verify is required.",
+        "value": "",
+        "notes": ""
+    },
+    "ri15": {
+        "display_name": "Fixed Price terms?",
+        "internal_name": "Fixed Price terms",
+        "helper_text": "No - Extension requires Sponsor approval. Review fixed price terms.",
+        "value": "",
+        "notes": ""
+    },
+    "ri16": {
+        "display_name": "Paid in full?",
+        "internal_name": "Paid in full",
+        "helper_text": "No - Check Award Portal. If outstanding payments exist, deny extension until PI/campus resolve with Sponsor.",
+        "value": "",
+        "notes": ""
+    },
+    "ri17": {
+        "display_name": "All deliverables submitted?",
+        "internal_name": "All deliverables submitted",
+        "helper_text": "No - Extension requires Sponsor approval. Review fixed price terms.",
+        "value": "",
+        "notes": ""
+    },
+    "review_notes": {
+        "display_name": "Review Notes",
+        "internal_name": "Review Notes",
+        "helper_text": "Enter any additional notes here.",
+        "value": "",
+        "notes": ""
+    }
+}

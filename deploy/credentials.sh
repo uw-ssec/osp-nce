@@ -1,68 +1,73 @@
 #!/bin/bash
 
-# Get the directory of the current script
+# Set project paths
 SCRIPT_DIR=$(dirname "$0")
-
-# Define project paths
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-cd $PROJECT_ROOT
-# Load environment variables from .env file if it exists
+# Move to project root
+cd "$PROJECT_ROOT" || exit 1
+
+# Load environment variables from .env if it exists
 if [ -f "$PROJECT_ROOT/.env" ]; then
-    export $(grep -v '^#' "$PROJECT_ROOT/.env" | xargs)
+    while IFS= read -r line; do
+        if [[ -n "$line" && "$line" != \#* ]]; then
+            # Remove the surrounding double quotes
+            line=$(echo "$line" | sed 's/^"\(.*\)"$/\1/')
+            eval "export $line"
+        fi
+    done < "$PROJECT_ROOT/.env"
 fi
 
-# Check if environment variables are set, if not prompt the user
-if [ -z "$RAD_USER" ]; then
-    read -p "Enter your database username: " RAD_USER
-    RAD_USER="netid\\$RAD_USER"
-    export RAD_USER="$RAD_USER"
-fi
+# Prompt for username if not set
+prompt_for_username() {
+    local var_name="$1"
+    local prompt_text="$2"
+    if [ -z "${!var_name}" ]; then
+        read -rp "$prompt_text: " $var_name
+        export $var_name="netid\\${!var_name}"
+    fi
+}
 
-if [ -z "$RAD_PASSWORD" ]; then
-    read -sp "Enter your database password: " RAD_PASSWORD
-    echo
-    export RAD_PASSWORD="$RAD_PASSWORD"
-fi
+# Prompt for secret if not set
+prompt_for_secret() {
+    local var_name="$1"
+    local prompt_text="$2"
+    if [ -z "${!var_name}" ]; then
+        read -rsp "$prompt_text: " $var_name
+        echo # New line for formatting
+    fi
+}
 
-if [ -z "$RAD_SERVER" ]; then
-    read -p "Enter your database server: " RAD_SERVER
-    export RAD_SERVER="$RAD_SERVER"
-fi
+# Prompt for variables if not set
+prompt_for_var() {
+    local var_name="$1"
+    local prompt_text="$2"
+    if [ -z "${!var_name}" ]; then
+        read -rp "$prompt_text: " $var_name
+        export $var_name="${!var_name}"
+    fi
+}
 
-if [ -z "$RAD_DATABASE" ]; then
-    read -p "Enter your database name: " RAD_DATABASE
-    export RAD_DATABASE="$RAD_DATABASE"
-fi
+# Prompt for missing environment variables
+prompt_for_username "RAD_USER" "Enter your database username"
+prompt_for_secret "RAD_PASSWORD" "Enter your database password"
+prompt_for_var "RAD_SERVER" "Enter your database server"
+prompt_for_var "RAD_DATABASE" "Enter your database name"
+prompt_for_var "AZURE_CLIENT_ID" "Enter your Azure client ID"
+prompt_for_var "AZURE_TENANT_ID" "Enter your Azure tenant ID"
+prompt_for_var "EXTENSION_FORMS_SHORT_LINK" "Enter your extension forms short link"
 
-if [ -z "$AZURE_CLIENT_ID" ]; then
-    read -p "Enter your Azure client ID: " AZURE_CLIENT_ID
-    export AZURE_CLIENT_ID="$AZURE_CLIENT_ID"
-fi
+# Ensure .env exists with proper permissions
+touch "$PROJECT_ROOT/.env"
+chmod 644 "$PROJECT_ROOT/.env"
 
-if [ -z "$AZURE_TENANT_ID" ]; then
-    read -p "Enter your Azure tenant ID: " AZURE_TENANT_ID
-    export AZURE_TENANT_ID="$AZURE_TENANT_ID"
-fi
-
-if [ -z "$EXTENSION_FORMS_SHORT_LINK" ]; then
-    read -p "Enter your extension forms short link: " EXTENSION_FORMS_SHORT_LINK
-    export EXTENSION_FORMS_SHORT_LINK="$EXTENSION_FORMS_SHORT_LINK"
-fi
-
-touch $PROJECT_ROOT/.env
-chmod 644 $PROJECT_ROOT/.env
-
-# Save environment variables to .env file
-cat <<EOF > "$PROJECT_ROOT/.env"
-RAD_USER="$RAD_USER"
-RAD_PASSWORD=$RAD_PASSWORD
-RAD_SERVER=$RAD_SERVER
-RAD_DATABASE=$RAD_DATABASE
-AZURE_CLIENT_ID=$AZURE_CLIENT_ID
-AZURE_TENANT_ID=$AZURE_TENANT_ID
-EXTENSION_FORMS_SHORT_LINK=$EXTENSION_FORMS_SHORT_LINK
+# Save environment variables to .env file safely with single quotes
+cat <<EOF >"$PROJECT_ROOT/.env"
+RAD_USER='${RAD_USER}'
+RAD_PASSWORD='${RAD_PASSWORD}'
+RAD_SERVER='${RAD_SERVER}'
+RAD_DATABASE='${RAD_DATABASE}'
+AZURE_CLIENT_ID='${AZURE_CLIENT_ID}'
+AZURE_TENANT_ID='${AZURE_TENANT_ID}'
+EXTENSION_FORMS_SHORT_LINK='${EXTENSION_FORMS_SHORT_LINK}'
 EOF
-
-
-
