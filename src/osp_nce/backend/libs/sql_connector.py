@@ -17,7 +17,9 @@ class SQLConnector:
         engine (sqlalchemy.engine.Engine): Query engine for query execution.
     """
 
-    def __init__(self, user, password, server, database, driver="mssql+pymssql"):
+    def __init__(
+        self, user: str, password: str, server: str, database: str, driver: str = "mssql+pymssql"
+    ) -> None:
         """
         Initialize the SQLConnector with credentials and parameters.
 
@@ -47,15 +49,15 @@ class SQLConnector:
         # Intialize the query engine
         self.engine = sqlalchemy.create_engine(connection_url)
 
-    def query_from_string(self, sql_query, params=None):
+    def query_from_string(self, sql_query: str, params: str | None = None) -> pd.DataFrame:
         """
         Execute raw SQL with optional parameter binding.
 
         Args:
-            sql_query (str): The SQL query to execute. Use the templating format
-                required by the RDBMS.
-            params (dict, optional): A dict of parameters for binding.
-                Example: {"mod_id": "MOD25169"}.
+            sql_query (str): The SQL query to execute. Use the templating format required by the
+                RDBMS.
+            params (dict, optional): A dict of parameters for binding. e.g.,
+                {"mod_id": "MOD25169"}.
 
         Returns:
             pd.DataFrame: Query result set as a pandas DataFrame.
@@ -63,7 +65,7 @@ class SQLConnector:
         with self.engine.connect() as connection:
             return pd.read_sql(sql_query, con=connection, params=params)
 
-    def query_from_file(self, query_path, params=None):
+    def query_from_file(self, query_path: str, params: str | None = None) -> pd.DataFrame:
         """
         Execute the query at query_path with optional parameter binding.
 
