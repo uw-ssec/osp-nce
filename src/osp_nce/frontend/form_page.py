@@ -1,11 +1,9 @@
 import json
 import re
 from datetime import datetime
-from io import BytesIO
 
 import requests
 import streamlit as st
-from PyPDF2 import PdfReader, PdfWriter
 
 
 class AutofillError(Exception):
@@ -75,7 +73,7 @@ def fetch_autofill(mod_id: str) -> dict:
             message += " No JSON in error response."
         raise AutofillError(message)
 
-    # Otherwise, attempt to parse the autofilled form fields
+    # Otherwise, attempt to parse the autofilled fields
     try:
         data_str = response.json().get("Data", "")
         if not data_str:
@@ -112,11 +110,6 @@ def get_curr_filename() -> str:
     return f"Review_Matrix_{sanitized_pi_name}_{mod_id}_{current_date}.pdf"
 
 
-# -------------------------------
-# Main Page Display (UI)
-# -------------------------------
-
-
 def show_basic_info_fields(form_dict: dict[dict]) -> None:
     """
     Displays fields for MOD/Worktag ID and PI Name on the page.
@@ -148,7 +141,6 @@ def show_review_fields(form_dict: dict[dict]) -> None:
 
     # Display the editable form fields with helper text and autofiller notes
     for ri, field in ri_fields_in_order.items():
-
         display_name = field.get("display_name", "")
         value = field.get("value", "")
         helper_text = field.get("helper_text", "")
@@ -221,6 +213,31 @@ def display_editable_form_page() -> None:
         show_utility_buttons()
 
 
+def autofill_callback(mod_id_input: str) -> None:
+    """
+    A callback to send the MOD ID to the backend to  autofill the local `ExtensionReviewMatrix`.
+    """
+    # Sanitize the user input
+    mod_id = mod_id_input.replace(" ", "").upper()
+    if not mod_id.startswith("MOD"):
+        mod_id = "MOD" + mod_id
+    if not is_valid_mod_id(mod_id):
+        st.warning("Invalid MOD ID. Must be 'MOD' plus exactly 5 digits.")
+        return
+
+    # Fetch autofiller response
+    try:
+        autofill = fetch_autofill(mod_id)
+        st.session_state["erm"].update_fields(autofill)
+
+    except AutofillError as e:
+        st.warning(f"Autofill retrieval failed: {e}")
+        return
+
+    st.session_state["working_mod"] = True
+    st.session_state["autofilled_vals"] = autofill
+
+
 def display_query_page() -> None:
     """
     Display a page where the user can input a MOD ID to fetch autofilled form data.
@@ -235,28 +252,12 @@ def display_query_page() -> None:
 
         mod_id_input = st.text_input("MOD/Worktag ID:", value="MOD", key="curr_mod_input")
 
-        def process_input_and_autofill() -> None:
-            # Sanitize and validate the user inputted MOD ID
-            mod_id = mod_id_input.replace(" ", "").upper()
-            if not mod_id.startswith("MOD"):
-                mod_id = "MOD" + mod_id
-            if not is_valid_mod_id(mod_id):
-                st.warning("Invalid MOD ID. Must be 'MOD' plus exactly 5 digits.")
-                return
-
-            # Fetch autofiller response
-            try:
-                autofill = fetch_autofill(mod_id)
-                st.session_state["erm"].update_fields(autofill)
-
-            except AutofillError as e:
-                st.warning(f"Autofill retrieval failed: {e}")
-                return
-
-            st.session_state["working_mod"] = True
-            st.session_state["autofilled_vals"] = autofill
-
-        st.button("Proceed", key="ProceedButtonLanding", on_click=process_input_and_autofill)
+        st.button(
+            "Proceed",
+            key="ProceedButtonLanding",
+            on_click=autofill_callback,
+            args=(mod_id_input,),
+        )
 
 
 def run() -> None:

@@ -279,7 +279,7 @@ class ERMAutoFiller(AutoFiller):
             "value": f"${balance:.2f}",
             "notes": (
                 f"Calculated as Total Authorized (${authorized_amt:.2f}) "
-                f"minus Billed to Date (${billed_to_date_amt:.2f}).\n"
+                f"minus Billed to Date (${billed_to_date_amt:.2f}). "
                 f"Values were obtained from {self.RAD_SOURCE}."
             ),
         }
@@ -305,13 +305,13 @@ class ERMAutoFiller(AutoFiller):
         if negative_balance:
             notes = (
                 f"Billed to Date (${billed_to_date_amt:.2f}) is greater than "
-                f"Total Authorized Amount (${authorized_amount:.2f}).\n"
+                f"Total Authorized Amount (${authorized_amount:.2f}). "
                 f"Values were obtained from {self.RAD_SOURCE}."
             )
         else:
             notes = (
                 f"Billed to Date (${billed_to_date_amt:.2f}) is not greater than "
-                f"Total Authorized Amount (${authorized_amount:.2f}).\n"
+                f"Total Authorized Amount (${authorized_amount:.2f}). "
                 f"Values were obtained from {self.RAD_SOURCE}."
             )
 
@@ -341,7 +341,7 @@ class ERMAutoFiller(AutoFiller):
             "value": self._to_std_yn(gt_25p),
             "notes": (
                 f"The computed balance was {balance_p:.2f}% of the total. "
-                f"This value was computed using the {self.RAD_SOURCE} and treated as definitive.\n"
+                f"This value was computed using the {self.RAD_SOURCE} and treated as definitive. "
                 f"In addition, {self.SHAREPOINT_SOURCE} reports that the award balance "
                 f"{'DOES' if self._to_tf(extension_form_value) else 'DOES NOT'} exceed 25% of "
                 f"the Total Authorized Amount, with explanation: {explanation}."
@@ -419,7 +419,7 @@ class ERMAutoFiller(AutoFiller):
             notes = (
                 f"Discrepancy between {self.RAD_SOURCE} and {self.SHAREPOINT_SOURCE} data; "
                 f"{self.RAD_SOURCE} reported: {is_human_subjects_rad}, "
-                f"{self.SHAREPOINT_SOURCE} reported: {is_human_subjects_ext}.\n "
+                f"{self.SHAREPOINT_SOURCE} reported: {is_human_subjects_ext}.  "
                 f"The AutoFiller response prioritizes {self.SHAREPOINT_SOURCE} data."
             )
 
@@ -449,7 +449,7 @@ class ERMAutoFiller(AutoFiller):
             notes = (
                 f"Discrepancy between {self.RAD_SOURCE} and {self.SHAREPOINT_SOURCE} data; "
                 f"{self.RAD_SOURCE} reported: {is_animal_use_rad}, "
-                f"{self.SHAREPOINT_SOURCE} reported: {is_animal_use_ext}.\n"
+                f"{self.SHAREPOINT_SOURCE} reported: {is_animal_use_ext}. "
                 f"Reported answer uses {self.SHAREPOINT_SOURCE} data."
             )
 
@@ -512,7 +512,7 @@ class ERMAutoFiller(AutoFiller):
             "value": self._to_std_yn(is_federal_contract),
             "notes": (
                 f"Prime Sponsor Entity Type: {sponsor_entity_type};  "
-                f"Project Type: {project_type}\n"
+                f"Project Type: {project_type} "
                 f"As reported in {self.RAD_SOURCE}."
             ),
         }
@@ -556,7 +556,7 @@ class ERMAutoFiller(AutoFiller):
             "value": self._to_std_yn(np.isclose(balance, 0)),
             "notes": (
                 f"Balance: ${balance:.2f} (Total Authorized: ${authorized_amount:.2f} "
-                f"minus  Billed to Date: ${billed_to_date_amt:.2f}).\n"
+                f"minus  Billed to Date: ${billed_to_date_amt:.2f}). "
                 f"Values obtained from {self.RAD_SOURCE}."
             ),
         }
@@ -582,8 +582,9 @@ class ERMAutoFiller(AutoFiller):
         """
         Fill the 'review_notes' field by concatenating and formatting all Autofiller notes.
         """
-        print("Here")
-        review_notes = self.form.get_concatenated_notes()
+        review_notes = self.form.get_concatenated_notes(
+            fields_to_exclude=["pi_name", "mod_id", "review_notes"]
+        )
         self.form.update_fields(
             {
                 "review_notes": {
