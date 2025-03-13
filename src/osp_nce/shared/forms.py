@@ -155,19 +155,24 @@ class FillableForm:
         """
         return json.dumps(self.form_dict)
 
-    def get_concatenated_notes(self) -> str:
+    def get_concatenated_notes(self, fields_to_exclude: list[str]) -> str:
         """
         Concatenate the field notes and return them as a single formatted string.
+
+        Args:
+            fields_to_exclude (list[str]): A list of keys for fields to exclude from notes
+                concatenation.
 
         Returns:
             str: Concatenated notes from all fields.
         """
-        print("in concat notes")
         notes = []
-        for field in self.form_dict.values():
+        for key, field in self.form_dict.items():
+            if key in fields_to_exclude:
+                continue
             notes.append(f"{field['display_name']}: {field['notes']}")
 
-        return "\n".join(notes)
+        return "\n\n".join(notes)
 
 
 class ExtensionReviewMatrix(FillableForm):
