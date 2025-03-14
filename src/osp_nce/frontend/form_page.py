@@ -51,7 +51,6 @@ def fetch_autofill(mod_id: str) -> dict:
 
         # On success, try to parse the form data
         try:
-            print("here")
             autofiller_data = body.get("data", "")
             return autofiller_data
         except (json.JSONDecodeError, TypeError) as e:
