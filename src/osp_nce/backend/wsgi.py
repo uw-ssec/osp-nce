@@ -139,4 +139,4 @@ app.include_router(autofill_router, prefix="/autofill")
 
 
 if __name__ == "__main__":
-    uvicorn.run("osp_nce.backend.wsgi2:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("osp_nce.backend.wsgi:app", host="0.0.0.0", port=8000, reload=True)
