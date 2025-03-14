@@ -3,36 +3,56 @@
 
 ### Context
 
-The University of Washington's Office of Sponsored Programs (OSP) works with UW primary investigators (PIs) to manage grants, contracts, and other sources of funding for their research activites. Part of OSP's work is to process **no cost extensions (NCEs)** – requests by PIs to extend the length of a grant/contract without modifying funding commitments. NCEs may or may not be subject to approval by the sponsor of a grant. Program Coordinators (PCs) within OSP are responsible for reviewing PI requests for no cost extension and filling out an extension review matrix (ERM), which helps OSP decide whether sponsor approval is required.
+The University of Washington's Office of Sponsored Programs (OSP) works with UW primary investigators (PIs) to manage grants, contracts, and other sources of funding for their research activites. Part of OSP's work is to process **no cost extensions (NCEs)** – requests by PIs to extend the length of a grant/contract without modifying funding commitments. NCEs may or may not be subject to approval by the sponsor of a grant. Program Coordinators (PCs) within OSP are responsible for reviewing PI requests for no cost extension and filling out a **form called the extension review matrix (ERM)**, which helps OSP decide whether sponsor approval is required.
 
-### Goals
+## Project Overview  
 
-The goal of this project is to **establish proof of concept for process automations aimed at streamlining Program Coordinators' NCE review process.** When this project began, PCs worked from a blank copy of the Extension Review Matrix form during each review. While some items on the form require careful assessment and consideration by PCs, others are straightforward and objective attributes of the grant which is under review. Prior to this project, PCs had to look up the answer to each review item on the ERM individually. After the automations are completed, PCs will start their workflow with a **partially pre-filled version of the extension review matrix.**
+Our goal was to **establish a proof of concept for process automation to streamline PCs' NCE review workflow.** Before this project, PCs manually completed the Extension Review Matrix (ERM), looking up each review item individually. While some items required careful assessment, others were straightforward attributes that could be pulled directly from existing databases.  
+
+To design our solution, we thought of the ERM as containing two types of items:
+
+- **Structured items** – objective attributes of a grant (e.g., budget details, approval requirements) that PCs previously had to look up and enter manually.  
+- **Unstructured items** – more complex elements requiring interpretation, such as reviewing contract terms to determine if sponsors explicitly require extension approval.  
+
+To streamline the process, we aimed to:  
+
+1. **Automate structured items** by developing an autofill feature that pre-fills the ERM using university database records.  
+2. **Assist with unstructured items** by integrating a virtual assistant powered by a large language model (LLM), enabling PCs to quickly locate relevant document sections and ask content-related questions.  
+
+To ensure usability, we collaborated closely with a program coordinator in the Office of Sponsored Programs (OSP) and conducted user interviews with managers. These insights helped us refine UW-GRACE to align with real-world workflows, identify where PCs find relevant data, and ensure the tool effectively supports their decision-making process. 
+
 
 ## Getting Started 
 
-First you need to install the docker CLI 
-on mac: 
-brew install docker 
+UW-GRACE is currently in the proof-of-concept phase. In this stage, we are only able to provide functionality to users affiliated with the University of Washington who have already been provisioned with permissions to access certain university IT resources. If you believe you fall into this category, please contact the contributors to this repository or [SSEC](https://escience.washington.edu/software-engineering/ssec/) to coordinate access. If you do not have the required permissions, you will not be able to run GRACE.
 
-(Note: if you encounter errors running the commands below, you may also need to install [Docker Desktop])(https://www.docker.com/products/docker-desktop/))
+To get started with UW-GRACE, you first need to install Docker.
 
-on windows:
-Install Docker Desktop and enable  wsl integration.
+On Mac OS, go to the terminal and run: 
+`brew install docker`
 
-Look here for more info: [link](https://www.docker.com/get-started/)
 
-Then, run `./deploy/build.sh`
+(Note: if you encounter errors running the commands below, you may also need to install [Docker Desktop](https://www.docker.com/products/docker-desktop/))
 
-This will build the containers and run the app 
+On Windows, please install Docker Desktop and enable wsl integration. See [here](https://www.docker.com/get-started/) for more info.
 
-### Repo Structure
+Once you've completed those steps, open the Terminal (MAC OS) or Command Prompt (Windows) and run `./deploy/build.sh`
 
-#### `src`
+This will build containers that store the dependencies GRACE relies on and automatically and run the app. When you run this command, you should get a message that looks like:
 
-This is the main development folder.
+```
+frontend-1  |   You can now view your Streamlit app in your browser.
+frontend-1  | 
+frontend-1  |   Local URL: http://localhost:8501
+frontend-1  |   Network URL: http://172.18.0.3:8501
+frontend-1  |   External URL: http://24.19.202.153:8501
+```
+
+Follow the Local URL to open the app in the browser.
 
 ### Application Architecture
+
+At the highest level, the GRACE application is organized as follows.
 
 #### Data Layer
 - Retrieves relevant data from the university’s databases using SQL queries.
@@ -44,28 +64,12 @@ This is the main development folder.
 - The user interface is a web application built with Streamlit, a Python package that simplifies the creation of interactive web UIs.
 - While the frontend is ultimately rendered in HTML and JavaScript, we do not develop it directly in these languages.
 
-```
-+---------------------------+
-|  Presentation Layer       |
-|  (Streamlit Web UI)       |
-+---------------------------+
-            │  
-            ▼  
-+---------------------------+
-|  Application Layer        |
-|  (Business Logic)         |
-|  - Processes data         |
-|  - Generates ERM answers |
-+---------------------------+
-            │  
-            ▼  
-+---------------------------+
-|  Data Layer               |
-|  (University Databases)   |
-|  - SQL Queries            |
-|  - SQLAlchemy for ORM     |
-+---------------------------+
-```
+
+### Repo Structure
+
+#### `src`
+
+This is the main development folder.
 
 #### `src/backend/libs`
 
@@ -84,7 +88,7 @@ Methods defined in this folder serve as helper methods in the [main application 
 Provides utility functions for resolving paths and directories within the project, such as obtaining the project root, SQL directory, and data directory paths.
 
 
-#### `sql`
+#### `src/osp_nce/backend/libd/queries/sql/`
 
 This folder represents the core of the application's database layer. The queries in this folder access the non-production verison of the `RADDB` and the employee data warehouse (`EDW`) and return data from these databases for processing by the application layer. 
 
@@ -112,10 +116,11 @@ Contains references and miscellaneous assets related to the project.
 This folder documents queries we performed to **explore** the datasets on which the GRACE web app depends, mostly `RADDB`. The purpose is to understand the data and ensure that the application layer correctly anticipates the format and conventions of data it ingests. Queries in this folder **do not contribute to the function of the application**.
 
 
+### [Reference]: ERM Shorthand
 
 Throughout our codebase, we refer to items that appear on the extension review matrix (ERM). These are verbose, so we usually abbreviate them. The table below specifies abbreviations.
 
-`ri` stands for "Review Item". Review items are enumerated in the order they appear on the ERM.
+`ri` stands for "Review Item". Review items are enumerated in the order they appear on the ERM. The review items below are from the Spring 2025 version of the ERM; this may be updated in the future.
 
 | Code Abbreviation | Form Text |
 |-------------------|-----------|
