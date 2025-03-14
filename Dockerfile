@@ -44,4 +44,4 @@ CMD ["streamlit", "run", "src/osp_nce/frontend/app.py", "--server.port", "8501"]
 # Backend
 FROM base AS fastapi
 EXPOSE 8000
-CMD ["uvicorn", "osp_nce.backend.wsgi:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "osp_nce.backend.wsgi2:app", "--host", "0.0.0.0", "--port", "8000"]

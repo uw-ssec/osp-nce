@@ -56,6 +56,7 @@ prompt_for_var "RAD_DATABASE" "Enter your database name"
 prompt_for_var "AZURE_CLIENT_ID" "Enter your Azure client ID"
 prompt_for_var "AZURE_TENANT_ID" "Enter your Azure tenant ID"
 prompt_for_var "EXTENSION_FORMS_SHORT_LINK" "Enter your extension forms short link"
+prompt_for_var "AUTOFILL_API_BASE_URL" "Enter the base URL of the Autofill backend you've set up."
 prompt_for_var "LLM_API_BASE_URL" "Enter the base URL of the LLM backend you've set up."
 
 # Ensure .env exists with proper permissions
@@ -71,5 +72,6 @@ RAD_DATABASE='${RAD_DATABASE}'
 AZURE_CLIENT_ID='${AZURE_CLIENT_ID}'
 AZURE_TENANT_ID='${AZURE_TENANT_ID}'
 EXTENSION_FORMS_SHORT_LINK='${EXTENSION_FORMS_SHORT_LINK}'
+AUTOFILL_API_BASE_URL='${AUTOFILL_API_BASE_URL}'
 LLM_API_BASE_URL='${LLM_API_BASE_URL}'
 EOF
