@@ -57,7 +57,7 @@ frontend-1  |   External URL: http://24.19.202.153:8501
 
 Follow the Local URL to open the app in the browser.
 
-### Autofiller Architecture
+## Autofiller Architecture
 
 At the highest level, the Autofiller portion of the GRACE application is organized as follows.
 
@@ -74,7 +74,7 @@ At the highest level, the Autofiller portion of the GRACE application is organiz
 - While the frontend is ultimately rendered in HTML and JavaScript, we do not develop it directly in these languages.
 
 
-### Chatbot Assistant Architecture
+## Chatbot Assistant Architecture
 
 At the highest level, the Chatbot Assistant portion of the GRACE application is organized as follows.
 
@@ -89,7 +89,7 @@ At the highest level, the Chatbot Assistant portion of the GRACE application is 
 
 
 
-### Repo Structure
+## Repo Structure
 
 #### `src`
 
@@ -181,7 +181,7 @@ This script represents a streamlined way to launch the web app without requiring
 
 This folder documents queries we performed to **explore** the datasets on which the GRACE web app depends, mostly `RADDB`. The purpose is to understand the data and ensure that the application layer correctly anticipates the format and conventions of data it ingests. Queries in this folder **do not contribute to the function of the application**.
 
-### [Reference]: ERM Shorthand
+## [Reference]: ERM Shorthand
 
 Throughout our codebase, we refer to items that appear on the extension review matrix (ERM). These are verbose, so we usually abbreviate them. The table below specifies abbreviations.
 
