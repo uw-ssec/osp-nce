@@ -141,17 +141,6 @@ This is the main development folder
 - **`templates`**: Contains template files.
   - **`extension_review_matrix_fillable_form.json`**: JSON template for the Extension Review Matrix (ERM).
 
-#### `src/backend/libs`
-
-This folder contains methods for:
-- **Data Layer**:
-  - Connects to the form that initiates 
-  - Connects to the relevant databases
-- **Application Layer**:
-  - Transforms data extracted from the data sources into answers to ERM questions.
-  - Delivers the answers as a `JSON` to the frontend.
-
-Methods defined in this folder serve as helper methods in the [main application flow](../serve/).
 
 #### `deploy`
 
