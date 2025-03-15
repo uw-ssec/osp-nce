@@ -1,9 +1,15 @@
 import json
+import os
 import re
 from datetime import datetime
+from urllib.parse import urljoin
 
 import requests
 import streamlit as st
+
+import osp_nce.frontend.utils as utils
+
+AUTOFILL_API_BASE_URL = os.getenv("AUTOFILL_API_BASE_URL")
 
 
 class AutofillError(Exception):
@@ -19,6 +25,64 @@ def is_valid_mod_id(mod_id: str) -> bool:
     Check if the given MOD ID has the expected format: 'MOD' followed by 5 digits.
     """
     return bool(re.fullmatch(r"MOD\d{5}", mod_id))
+
+
+def fetch_autofill(mod_id: str) -> dict:
+    """
+    Send a POST request to retrieve autofill data for the given MOD ID.
+
+    Args:
+        mod_id (str): The ID of the MOD to autofill for (e.g., MOD12345).
+
+    Returns:
+        dict: A dictionary containing field values to update the `ExtensionReviewMatrix`.
+
+    Raises:
+        AutofillError: If the endpoint raises an exception or any JSON decode errors occur.
+    """
+    url = urljoin(AUTOFILL_API_BASE_URL, "autofill/autofill_erm")
+    payload = {"mod_id": mod_id}
+
+    # Make the autofill request
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        body = response.json()
+
+        # On success, try to parse the form data
+        try:
+            autofiller_data = body.get("data", "")
+            return autofiller_data
+        except (json.JSONDecodeError, TypeError) as e:
+            raise AutofillError(f"Error processing AutoFiller response: {e}")
+
+    except requests.RequestException as e:
+        error_message = utils.extract_error_message(e)
+        raise AutofillError(f"Autofill request failed: {error_message}")
+
+
+def get_curr_pdf() -> bytes:
+    """
+    Retrieve the latest PDF bytes from session state.
+    """
+    try:
+        return st.session_state.erm.to_bytes()
+    except Exception as e:
+        raise Exception(e)
+
+
+def get_curr_filename() -> str:
+    """
+    Construct a standardized filename for the PDF output.
+
+    Returns:
+        str: A filename of the form 'Review_Matrix_<PIName>_<MODID>_<YYYY-MM-DD>.pdf'.
+    """
+    mod_id = st.session_state.erm.form_dict["mod_id"].get("value", "")
+    pi_name = st.session_state.erm.form_dict["pi_name"].get("value", "")
+    sanitized_pi_name = pi_name.replace(",", "_")
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    return f"Review_Matrix_{sanitized_pi_name}_{mod_id}_{current_date}.pdf"
 
 
 def autosave_values() -> None:
@@ -48,68 +112,6 @@ def restore_autofiller_responses() -> None:
     st.session_state.erm.update_fields(st.session_state.get("autofilled_vals", {}))
 
 
-def fetch_autofill(mod_id: str) -> dict:
-    """
-    Send a POST request to retrieve autofill data for the given MOD ID.
-
-    Raises:
-        AutofillError: If any network errors or invalid responses are encountered.
-    """
-    url = "http://backend:8000/autofill_erm/"
-    payload = {"mod_id": mod_id}
-    try:
-        response = requests.post(url, json=payload)
-    except requests.RequestException as e:
-        raise AutofillError(f"Request failed: {e}")
-
-    # If the response is not 200, build an error message and raise an AutofillError
-    if not response.ok:
-        message = f"Server responded with {response.status_code}."
-        try:
-            detail = response.json().get("detail")
-            if detail:
-                message += f" Detail: {detail}"
-        except json.JSONDecodeError:
-            message += " No JSON in error response."
-        raise AutofillError(message)
-
-    # Otherwise, attempt to parse the autofilled fields
-    try:
-        data_str = response.json().get("Data", "")
-        if not data_str:
-            raise AutofillError("No 'Data' field in JSON response.")
-        autofiller_data = json.loads(data_str)
-    except (json.JSONDecodeError, TypeError) as e:
-        raise AutofillError(f"Error processing JSON 'Data': {e}")
-
-    return autofiller_data
-
-
-def get_curr_pdf() -> bytes:
-    """
-    Retrieve the latest PDF bytes from session state.
-    """
-    try:
-        return st.session_state.erm.to_bytes()
-    except Exception as e:
-        raise Exception(e)
-
-
-def get_curr_filename() -> str:
-    """
-    Construct a standardized filename for the PDF output.
-
-    Returns:
-        str: A filename of the form 'Review_Matrix_<PIName>_<MODID>_<YYYY-MM-DD>.pdf'.
-    """
-    mod_id = st.session_state.erm.form_dict["mod_id"].get("value", "")
-    pi_name = st.session_state.erm.form_dict["pi_name"].get("value", "")
-    sanitized_pi_name = pi_name.replace(",", "_")
-    current_date = datetime.now().strftime("%Y-%m-%d")
-
-    return f"Review_Matrix_{sanitized_pi_name}_{mod_id}_{current_date}.pdf"
-
-
 def show_basic_info_fields(form_dict: dict[dict]) -> None:
     """
     Displays fields for MOD/Worktag ID and PI Name on the page.
@@ -125,12 +127,14 @@ def show_review_fields(form_dict: dict[dict]) -> None:
     """
     Displays the main Extension Review Matrix fields and associated notes.
     """
+    # Gather fields to display in main form body
     ri_fields_in_order = {
         key: value
         for key, value in form_dict.items()
         if key not in ["review_notes", "mod_id", "pi_name"]
     }
 
+    # Display form body column headers
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
         st.subheader("Review Items")
@@ -200,7 +204,7 @@ def display_editable_form_page() -> None:
     Display a user-editable Extension Review Matrix with autofilled fields.
 
     Notes:
-        Only called  when the `working_mod` flag is set in the session state.
+        Only called  when the `working_mod` flag is raised in the session state.
     """
     placeholder = st.empty()
     form_dict = st.session_state["erm"].to_dict()
@@ -225,17 +229,14 @@ def autofill_callback(mod_id_input: str) -> None:
         st.warning("Invalid MOD ID. Must be 'MOD' plus exactly 5 digits.")
         return
 
-    # Fetch autofiller response
+    # Make the autofill request
     try:
         autofill = fetch_autofill(mod_id)
         st.session_state["erm"].update_fields(autofill)
-
+        st.session_state["working_mod"] = True
+        st.session_state["autofilled_vals"] = autofill
     except AutofillError as e:
-        st.warning(f"Autofill retrieval failed: {e}")
-        return
-
-    st.session_state["working_mod"] = True
-    st.session_state["autofilled_vals"] = autofill
+        st.error(f"{e}")
 
 
 def display_query_page() -> None:

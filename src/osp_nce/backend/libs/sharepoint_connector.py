@@ -10,8 +10,8 @@ class SharepointConnector:
     """
     Connector for pulling files from SharePoint.
 
-    Uses Azure AD device-flow to authenticate (for now). Parses shared links and
-    downloads files using the Microsoft Graph API.
+    Uses Azure AD device-flow to authenticate (for now). Parses shared links and downloads files
+    using the Microsoft Graph API.
 
     Attributes:
         client_id (str): Azure AD application (client) ID.
@@ -21,15 +21,15 @@ class SharepointConnector:
         access_token (str or None): Current access token to use for requests.
     """
 
-    def __init__(self, client_id, tenant_id, scopes=["Files.Read"]):
+    def __init__(self, client_id: str, tenant_id: str, scopes: list[str] = ["Files.Read"]) -> None:
         """
         Initialize the connector with the required Azure AD application details.
 
         Args:
             client_id (str): Azure AD client (application) ID.
             tenant_id (str): Azure AD tenant ID (or domain).
-            scopes (list[str], optional): List of Graph permissions to request.
-                Defaults to ["Files.Read"] if not provided.
+            scopes (list[str], optional): List of Graph permissions to request. Defaults to
+                ["Files.Read"] if not provided.
         """
         self.client_id = client_id
         self.tenant_id = tenant_id
@@ -39,12 +39,11 @@ class SharepointConnector:
         self._flow = None
         self._app = None
 
-    def prompt_user(self):
+    def prompt_user(self) -> None:
         """
         Use Azure AD device-flow to acquire an access token.
 
-        Prompts the user to visit https://microsoft.com/devicelogin and enter a
-        code. 
+        Prompts the user to visit https://microsoft.com/devicelogin and enter a code.
 
         Raises:
             ValueError: If device flow or token acquisition fails.
@@ -53,37 +52,33 @@ class SharepointConnector:
             raise AttributeError("Client ID must be provided in the constructor.")
 
         # Set up MSAL client for device flow authentication
-        app = msal.PublicClientApplication(
-            client_id=self.client_id, authority=self.authority
-        )
+        app = msal.PublicClientApplication(client_id=self.client_id, authority=self.authority)
 
         # Intiate authentication
         flow = app.initiate_device_flow(scopes=self.scopes)
         if "user_code" not in flow:
-            raise RuntimeError(
-                "No user_code in device flow. Check Azure AD app registration."
-            )
+            raise RuntimeError("No user_code in device flow. Check Azure AD app registration.")
+
         self._flow = flow
         self._app = app
         return flow["message"]
 
-    def acquire_token(self):
+    def acquire_token(self) -> None:
         """
-        Aquire the access token upon completion of the device flow login. 
+        Aquire the access token upon completion of the device flow login.
         """
         if not (self._app and self._flow):
             raise AttributeError("Device flow has not initiated. Call `prompt_user` first.")
 
         result = self._app.acquire_token_by_device_flow(self._flow)
 
-        # Extract the access token from the result
         if "access_token" not in result:
             error_detail = result.get("error")
             raise RuntimeError(f"Error acquiring token: {error_detail}")
         else:
             self._access_token = result["access_token"]
 
-    def get_item_info_from_short_link(self, short_link):
+    def get_item_info_from_short_link(self, short_link: str) -> dict:
         """
         Use the Microsfot Graph API to decode a SharePoint short link.
 
@@ -106,27 +101,23 @@ class SharepointConnector:
         encoded_str = encoded_bytes.decode("utf-8").rstrip("=")
 
         # Build the Graph API shares endpoint
-        shares_endpoint = (
-            f"https://graph.microsoft.com/v1.0/shares/u!{encoded_str}/driveItem"
-        )
+        shares_endpoint = f"https://graph.microsoft.com/v1.0/shares/u!{encoded_str}/driveItem"
         headers = {"Authorization": f"Bearer {self._access_token}"}
 
         # Make the request to decode the short link
         response = requests.get(shares_endpoint, headers=headers)
         if response.status_code != 200:
-            raise RuntimeError(
-                f"Error from endpoint ({response.status_code}): {response.text}"
-            )
+            raise RuntimeError(f"Error from endpoint ({response.status_code}): {response.text}")
 
         return response.json()
 
     def download_excel(
         self,
-        site_id,
-        drive_id,
-        item_id,
-        local_file_path="downloaded_file.xlsx",
-    ):
+        site_id: str,
+        drive_id: str,
+        item_id: str,
+        local_file_path: str = "downloaded_file.xlsx",
+    ) -> None:
         """
         Download a file from the site, drive, and item ID in SharePoint.
 
@@ -158,13 +149,11 @@ class SharepointConnector:
                 file.write(response.content)
             print(f"File downloaded successfully at: {local_file_path}")
         else:
-            raise RuntimeError(
-                f"Error downloading file ({response.status_code}): {response.text}"
-            )
+            raise RuntimeError(f"Error downloading file ({response.status_code}): {response.text}")
 
     def download_excel_from_short_link(
-        self, short_link, local_file_path="downloaded_file.xlsx"
-    ):
+        self, short_link: str, local_file_path: str = "downloaded_file.xlsx"
+    ) -> None:
         """
         Convenience method to download a file from a SharePoint short link.
 
@@ -194,25 +183,26 @@ class SharepointConnector:
         self.download_excel(site_id, drive_id, item_id, local_file_path)
 
     def read_excel_from_short_link(
-        self, short_link, header=None, skiprows=0, names=None
-    ):
+        self,
+        short_link: str,
+        header: int | list[int] | None = None,
+        skiprows: int = 0,
+        names: list[str] | None = None,
+    ) -> pd.DataFrame:
         """
         Read an Excel file from a SharePoint short link into a pandas DataFrame.
 
-        This method acquires a token (if needed), decodes the short link,
-        downloads the Excel file content in memory, and returns it as a
-        DataFrame.
+        This method acquires a token (if needed), decodes the short link, downloads the Excel file
+        content in memory, and returns it as a DataFrame.
 
         Args:
             short_link (str): The SharePoint short link to decode.
-            header (int, list of int, default 0): Row (0-indexed) to use for the
-                column labels of the parsed DataFrame.
-            skiprows (int, list-like, default 0): Line numbers to skip
-                (0-indexed) or number of lines to skip (int) at the start of the
-                file.
-            names (array-like, optional): List of column names to use. If file
-                contains no header row, then you should explicitly pass
-                header=None.
+            header (int, list of int, default 0): Row (0-indexed) to use for the column labels of
+                the parsed DataFrame.
+            skiprows (int, list-like, default 0): Line numbers to skip (0-indexed) or number of
+            lines to skip (int) at the start of the file.
+            names (array-like, optional): List of column names to use. If file contains no header
+                row, then you should explicitly pass header=None.
 
         Returns:
             pandas.DataFrame: The data read from the remote Excel file.
@@ -247,16 +237,13 @@ class SharepointConnector:
                 names=names,
             )
         else:
-            raise RuntimeError(
-                f"Error reading file ({response.status_code}): {response.text}"
-            )
+            raise RuntimeError(f"Error reading file ({response.status_code}): {response.text}")
 
-    def read_extension_forms_from_short_link(self, short_link):
+    def read_extension_forms_from_short_link(self, short_link: str) -> pd.DataFrame:
         """
         Read the extension forms from the OSP Sharepoint site.
 
-        This is a convenience method for pre-parsing a particular excel files
-        (extension forms).
+        This is a convenience method for pre-parsing the OSP Extension Form Responses.
 
         Args:
             short_link (str): The SharePoint short link to the extension form
