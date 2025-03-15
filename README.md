@@ -142,7 +142,7 @@ This is the main development folder
   - **`extension_review_matrix_fillable_form.json`**: JSON template for the Extension Review Matrix (ERM).
 
 
-#### `deploy`
+## `deploy`
 
 The bash script in this folder installs software and libraries that the end user will need to run the GRACE Streamlit web app. The script:
 - Installs the correct version of Python, if needed.
@@ -154,7 +154,7 @@ The bash script in this folder installs software and libraries that the end user
 This script represents a streamlined way to launch the web app without requiring end users to configure the computing environment.
 
 
-#### `eda`
+## `eda`
 
 This folder documents queries we performed to **explore** the datasets on which the GRACE web app depends, mostly `RADDB`. The purpose is to understand the data and ensure that the application layer correctly anticipates the format and conventions of data it ingests. Queries in this folder **do not contribute to the function of the application**.
 
