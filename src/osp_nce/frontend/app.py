@@ -1,7 +1,13 @@
+import os
+from urllib.parse import urljoin
+
 import requests
 import streamlit as st
 
+import osp_nce.frontend.utils as utils
 from osp_nce.shared.forms import ExtensionReviewMatrix
+
+AUTOFILL_API_BASE_URL = os.getenv("AUTOFILL_API_BASE_URL")
 
 
 def request_device_flow_code() -> None:
@@ -9,15 +15,14 @@ def request_device_flow_code() -> None:
     Request a device flow link and code from the query backend.
     """
     try:
-        response = requests.get("http://backend:8000/prompt_azure_mfa/")
-        if response.status_code == 200:
-            body = response.json()
-            st.session_state["auth_message"] = body.get("auth_message", "")
-            st.session_state["show_proceed"] = True
-        else:
-            st.error(f"Request for auth code failed. Status code {response.status_code}")
+        url = urljoin(AUTOFILL_API_BASE_URL, "auth/prompt_azure_mfa")
+        response = requests.get(url)
+        response.raise_for_status()
+        st.session_state["auth_message"] = response.json().get("auth_message", "")
+        st.session_state["show_proceed"] = True
     except requests.RequestException as e:
-        st.error(f"Failed to contact server: {e}")
+        error_message = utils.extract_error_message(e)
+        st.error(f"Failed to intiate authentication: {error_message}")
 
 
 def fetch_user_access_token() -> None:
@@ -25,13 +30,13 @@ def fetch_user_access_token() -> None:
     Retrieve the user's access token after device flow authentication.
     """
     try:
-        response = requests.get("http://backend:8000/acquire_access_token/")
-        if response.status_code == 200:
-            st.session_state["logged_in"] = True
-        else:
-            st.error(f"Request for token failed. Status code {response.status_code}")
+        url = urljoin(AUTOFILL_API_BASE_URL, "auth/acquire_access_token")
+        response = requests.get(url)
+        response.raise_for_status()
+        st.session_state["logged_in"] = True
     except requests.RequestException as e:
-        st.error(f"Failed to contact server: {e}")
+        error_message = utils.extract_error_message(e)
+        st.error(f"Failed to aquire access token: {error_message}")
 
 
 def display_login_page() -> None:
