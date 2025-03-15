@@ -15,11 +15,11 @@ The University of Washington's Office of Sponsored Programs (OSP) works with UW 
 
 ## Project Overview  
 
-Our goal was to **establish a proof of concept for process automation to streamline PCs' NCE review workflow.** Before this project, PCs manually completed the Extension Review Matrix (ERM), looking up each review item individually. While some items required careful assessment, others were straightforward attributes that could be pulled directly from existing databases.  
+Our goal was to **establish a proof of concept for process automations to streamline PCs' NCE review workflow.** Before this project, PCs manually completed the Extension Review Matrix (ERM), looking up each review item individually. While some items required careful assessment, others were straightforward attributes that could be pulled directly from existing databases.  
 
 To design our solution, we thought of the ERM as containing two types of items:
 
-- **Structured items** – objective attributes of a grant (e.g., budget details, approval requirements) that PCs previously had to look up and enter manually.  
+- **Structured items** – objective attributes of a grant (e.g., budget details) that PCs previously had to look up and enter manually.  
 - **Unstructured items** – more complex elements requiring interpretation, such as reviewing contract terms to determine if sponsors explicitly require extension approval.  
 
 To streamline the process, we aimed to:  
@@ -27,7 +27,7 @@ To streamline the process, we aimed to:
 1. **Automate structured items** by developing an autofill feature that pre-fills the ERM using university database records.  
 2. **Assist with unstructured items** by integrating a virtual assistant powered by a large language model (LLM), enabling PCs to quickly locate relevant document sections and ask content-related questions.  
 
-To ensure usability, we collaborated closely with a program coordinator in the Office of Sponsored Programs (OSP) and conducted user interviews with managers. These insights helped us refine UW-GRACE to align with real-world workflows, identify where PCs find relevant data, and ensure the tool effectively supports their decision-making process. 
+To ensure usability, we collaborated closely with a program coordinator in the Office of Sponsored Programs (OSP) and conducted user interviews with managers. These conversations helped us ensure that UW-GRACE uses relevant data, accurately replicates real-life workflows, and aligns the tool's outputs with the way PCs make decisions.
 
 
 ## Getting Started 
@@ -43,7 +43,7 @@ On Mac OS, open the Terminal and run:
 
 On Windows, please install Docker Desktop and enable wsl integration. See [here](https://www.docker.com/get-started/) for more info.
 
-Once you've completed those steps, open the Terminal (MAC OS) or Command Prompt (Windows) and run `./deploy/build.sh`
+Once you've completed those steps, open the Terminal (Mac OS) or Command Prompt (Windows). Navigate to the folder where you'd like to store this project. [Clone this repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository). Then, navigate to the top-level folder in this repo and run `./deploy/build.sh`
 
 This will build containers that store the dependencies GRACE relies on and automatically and run the app. When you run this command, you should get a message that looks like:
 
@@ -55,7 +55,7 @@ frontend-1  |   Network URL: http://172.18.0.3:8501
 frontend-1  |   External URL: http://24.19.202.153:8501
 ```
 
-Follow the Local URL to open the app in the browser.
+Follow the Local URL (you should be able to Ctrl+Clickt the link) to open the app in the browser.
 
 ## Autofiller Architecture
 
@@ -91,11 +91,9 @@ At the highest level, the Chatbot Assistant portion of the GRACE application is 
 
 ## Repo Structure
 
-#### `src`
+### `src` Folder Summary
 
-This is the main development folder.
-
-# `src` Folder Summary
+This is the main development folder
 
 ## `osp_nce`
 - **`__init__.py`**: Initializes the `osp_nce` package.
@@ -154,16 +152,6 @@ This folder contains methods for:
   - Delivers the answers as a `JSON` to the frontend.
 
 Methods defined in this folder serve as helper methods in the [main application flow](../serve/).
-
-#### `shared`
-
-Provides utility functions for resolving paths and directories within the project, such as obtaining the project root, SQL directory, and data directory paths.
-
-#### `src/osp_nce/backend/libd/queries/sql/`
-
-This folder represents the core of the application's database layer. The queries in this folder access the non-production version of the `RADDB` and the employee data warehouse (`EDW`) and return data from these databases for processing by the application layer.
-
-With minor exceptions, we try to avoid including business logic in these queries to keep code modular and maintainable. Instead, methods in the application layer – contained in the [`src`](../src/) folder – transform the database output into answers to questions on the [extension review matrix](../assets/nsf_prior_approval_matrix.pdf).
 
 #### `deploy`
 
