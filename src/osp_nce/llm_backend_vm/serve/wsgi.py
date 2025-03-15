@@ -17,7 +17,7 @@ from libs.retriever.retriever import Retriever
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
-
+from datetime import datetime
 
 app = FastAPI(title="RAG Application")
 
@@ -53,6 +53,16 @@ def json_to_document(json_data):
         metadata=json_data["metadata"]
     )
 
+
+@app.get("/ping/")
+async def ping() -> dict[str, str]:
+    health = True
+    status = 200 if health else 404
+    message = (
+        f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Status Code {status},"
+        f" health check {'passed' if health else 'failed'}."
+    )
+    return {"message": message}
 
 @app.post("/retrieve/")
 async def retrieve(request: RetrieveRequest):

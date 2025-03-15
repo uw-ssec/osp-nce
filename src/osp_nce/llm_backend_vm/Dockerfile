@@ -28,7 +28,6 @@ FROM base as backend
 COPY ./serve /app/serve
 COPY ./libs /app/libs
 COPY ./tests /app/tests
-COPY ./frontend /app/frontend
 EXPOSE 5000
 EXPOSE 8501
 CMD ["pixi", "run", "python", "serve/wsgi.py"]
