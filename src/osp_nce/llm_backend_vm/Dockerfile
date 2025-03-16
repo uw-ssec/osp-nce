@@ -5,9 +5,15 @@ WORKDIR /app
 # Install basic apt packages
 RUN echo "Installing Apt-get packages..." \
     && apt-get update --fix-missing > /dev/null \
-    && apt-get install -y wget zip tzdata curl git ca-certificates > /dev/null \
+    && apt-get install -y wget zip tzdata curl git ca-certificates gnupg lsb-release > /dev/null \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install gcloud CLI
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list \
+    && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - \
+    && apt-get update \
+    && apt-get install -y google-cloud-sdk
 
 # Install Pixi manually 
 RUN curl -fsSL https://pixi.sh/install.sh | bash
@@ -28,7 +34,7 @@ FROM base as backend
 COPY ./serve /app/serve
 COPY ./libs /app/libs
 COPY ./tests /app/tests
-COPY ./frontend /app/frontend
 EXPOSE 5000
 EXPOSE 8501
+
 CMD ["pixi", "run", "python", "serve/wsgi.py"]

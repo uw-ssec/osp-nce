@@ -1,6 +1,5 @@
-""" 
-This module defines the FastAPI application for the RAG service. 
-
+"""
+This module defines the FastAPI application for the RAG service.
 
 We implement separate endpoints for retrieval and generation.
 The retrieval endpoint accepts a query and a list of documents, and returns the most relevant documents based on the query.
@@ -9,20 +8,29 @@ The generation endpoint accepts a prompt and returns the generated text.
 Implementing separate endpoints allows us to scale the retrieval and generation components independently.
 """
 
-
 import traceback
 from libs.models.language_model import LanguageModel
+from libs.auth.gcloud_auth import AuthHandler
 from langchain.schema import Document
 from libs.retriever.retriever import Retriever
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException
-
+from fastapi import FastAPI, Depends, HTTPException, Security
+from fastapi.security.api_key import APIKeyHeader
+from datetime import datetime
+import hmac
 
 app = FastAPI(title="RAG Application")
 
 # Global model instance (lazy-loaded)
 MODEL_INSTANCES = {}
+
+# API Key security
+API_KEY_NAME = "msds-grace-api-key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
+
+# Initialize auth handler
+auth_handler = AuthHandler()
 
 
 class RetrieveRequest(BaseModel):
@@ -53,9 +61,27 @@ def json_to_document(json_data):
         metadata=json_data["metadata"]
     )
 
+def validate_api_key(api_key: str = Security(api_key_header)):
+    """Validate API key against the one from Secret Manager"""
+    gcloud_key = auth_handler.api_key
+    is_valid = hmac.compare_digest(gcloud_key, api_key)
+    if not is_valid:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return api_key
+
+@app.get("/ping/")
+async def ping() -> dict[str, str]:
+    """Health check endpoint"""
+    health = True
+    status = 200 if health else 404
+    message = (
+        f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Status Code {status},"
+        f" health check {'passed' if health else 'failed'}."
+    )
+    return {"message": message}
 
 @app.post("/retrieve/")
-async def retrieve(request: RetrieveRequest):
+async def retrieve(request: RetrieveRequest, api_key: str = Depends(validate_api_key)):
     """
     Retrieve documents based on the query.
 
@@ -114,7 +140,7 @@ def get_model(generation_model):
 
 
 @app.post("/generate/")
-async def generate(request: GenerationRequest):
+async def generate(request: GenerationRequest, api_key: str = Depends(validate_api_key)):
     """
     Generate text based on the prompt.
 

@@ -1,10 +1,11 @@
 import pytest
 import httpx
+import os
 # from fastapi.testclient import TestClient
 # from serve.wsgi import app
 
 # client = TestClient(app)
-BASE_URL = "http://llm_backend:5000"
+BASE_URL = os.getenv("API_BASE_URL")
 
 # Sample documents for testing
 sample_documents = [
@@ -35,8 +36,12 @@ def test_retrieve_endpoint(query, expected_status):
         "embedding_model": "sentence-transformers/all-MiniLM-L12-v2"
     }
     
+    headers = {
+        "msds-grace-api-key" : os.getenv("API_KEY", "")
+    }
+
     with httpx.Client(timeout=30.0) as client:  # Increased timeout for model loading
-        response = client.post(f"{BASE_URL}/retrieve/", json=payload)
+        response = client.post(f"{BASE_URL}/retrieve/", json=payload, headers = headers)
     
         # response = client.post("/retrieve/", json=payload)
 
