@@ -345,6 +345,10 @@ This folder documents queries we performed to explore the datasets on which the 
   - Query execution (`query_from_string`, `query_from_file`)
   - Parameterized queries
 
+## Next Steps
+
+This is an ongoing project. To see the roadmap for continued development, please see the [Issues](https://github.com/uw-ssec/osp-nce/issues) section of this project.
+
 ## [Reference]: ERM Shorthand
 
 Throughout our codebase, we refer to items that appear on the extension review matrix (ERM). These are verbose, so we usually abbreviate them. The table below specifies abbreviations.
