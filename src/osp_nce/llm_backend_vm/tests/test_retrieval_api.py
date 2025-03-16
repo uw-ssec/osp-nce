@@ -5,7 +5,7 @@ import os
 # from serve.wsgi import app
 
 # client = TestClient(app)
-BASE_URL = "http://35.203.160.191:5000"
+BASE_URL = os.getenv("API_BASE_URL")
 
 # Sample documents for testing
 sample_documents = [
