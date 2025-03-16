@@ -37,7 +37,7 @@ def test_retrieve_endpoint(query, expected_status):
     }
     
     headers = {
-        "msds-grace-api-key" : os.get.env("API_KEY", "")
+        "msds-grace-api-key" : os.getenv("API_KEY", "")
     }
 
     with httpx.Client(timeout=30.0) as client:  # Increased timeout for model loading
