@@ -5,10 +5,16 @@
 - [Context](#context)
 - [Project Overview](#project-overview)
 - [Getting Started](#getting-started)
-- [Autofiller Architecture](#autofiller-architecture)
-- [Chatbot Assistant Architecture](#chatbot-assistant-architecture)
-- [Repo Structure](#repo-structure)
+  - [Launching the App](#launching-the-app)
+  - [Navigating the Web Interface](#navigating-the-web-interface)
+- [Developer Info](#developer-info)
+  - [General Project Architecture](#general-project-architecture)
+  - [Autofiller Architecture](#autofiller-architecture)
+  - [Chatbot Assistant Architecture](#chatbot-assistant-architecture)
+  - [Repo Structure](#repo-structure)
+- [Next Steps](#next-steps)
 - [ERM Shorthand Reference](#erm-shorthand-reference)
+- [Acknowledgements](#acknowledgements)
 
 ## Context
 
