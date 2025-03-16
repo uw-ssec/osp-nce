@@ -81,19 +81,25 @@ Follow the Local URL (you should be able to Ctrl+Clickt the link) to open the ap
 
 1. When GRACE launches, it needs to authenticate your access to UW Sharepoint. Click 'Proceed' and follow the instructions to authenticate. You will need to enable pop-ups and switch away from the tab where GRACE launched.
 
-<img src="./doc_assets/Screenshot%202025-03-16%20at%2011.22.55 AM.png" alt="Credentials Authentication Screen" width="50%">
+<p align="center">
+  <img src="./doc_assets/Screenshot%202025-03-16%20at%2011.22.55 AM.png" alt="Credentials Authentication Screen" width="80%">
+</p>
 
 Once you confirm your UW NET ID, return to the tab where GRACE launched. Click 'Proceed'.
 
 2. If authentication succeeded, you will see the following interface:
 
-<img src="./doc_assets/Screenshot%202025-03-16%20at%2011.41.02 AM.png" alt="Enter MOD ID Screen" width="50%">
+<p align="center">
+  <img src="./doc_assets/Screenshot%202025-03-16%20at%2011.41.02 AM.png" alt="Enter MOD ID Screen" width="80%">
+</p>
 
 By default, users land in the `Editable Form` tab. This tab takes users through the autofiller. Users can also select the `Document Chat` tab, which leads to the chatbot. Steps 3-5 below show how to interact with the `Editable Form` interface; the remaining steps describe the chatbot.
 
 3. Enter the MOD ID associated with the modification request for the no cost extension you'd like to process.
 
-<img src="./doc_assets/Screenshot%202025-03-16%20at%2011.47.47 AM.png" alt="Enter Modification Request ID" width="50%">
+<p align="center">
+  <img src="./doc_assets/Screenshot%202025-03-16%20at%2011.47.47 AM.png" alt="Enter Modification Request ID" width="80%">
+</p>
 
 Click Proceed.
 
