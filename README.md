@@ -353,7 +353,7 @@ This folder documents queries we performed to explore the datasets on which the 
 
 ## Next Steps
 
-This is an ongoing project. To see the roadmap for continued development, please see the [Issues](https://github.com/uw-ssec/osp-nce/issues) section of this project.
+This is an ongoing project. To see the roadmap for continued development, please see the [Milestones](https://github.com/uw-ssec/osp-nce/milestones) section of this project.
 
 ## [Reference]: ERM Shorthand
 
