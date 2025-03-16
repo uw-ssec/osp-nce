@@ -54,16 +54,22 @@ class LanguageModel():
         if self.quantization == "4bit":
             quantization_config = BitsAndBytesConfig(load_in_4bit=True)
 
+        hf_token = os.getenv("HF_TOKEN")
+        
         # Load tokenizer
-        tokenizer = AutoTokenizer.from_pretrained(self.model_name,
-                                                  cache_dir=self.model_path)
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.model_name,
+            cache_dir=self.model_path,
+            use_auth_token=hf_token
+        )
 
         # Load model with quantization
         model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             cache_dir=self.model_path,
             device_map="auto",
-            quantization_config=quantization_config
+            quantization_config=quantization_config,
+            use_auth_token=hf_token
         )
         self.llm = model
         self.tokenizer = tokenizer
