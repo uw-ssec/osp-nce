@@ -14,17 +14,14 @@ EXISTING_QDRANT_PATH = None
 RETRIEVAL_K = 2  # Number of relevant documents to retrieve
 
 
-# TODO: Update for grants
 def expand_query(query: str) -> str:
     """
     Modify the query for better retrieval.
     """
-    if "Rubin" in query:
-        query += " LSST Large Synoptic Survey Telescope"
+    
     return query
 
 
-# TODO: Update for our use case
 def format_prompt(context: str, question: str) -> str:
     """
     Format the retrieval context into the final prompt.
@@ -163,13 +160,13 @@ def run_chat_loop(documents: list[dict]) -> None:
         retrieved_docs = retrieve_documents(documents, query)
 
     # Prepare text from retrieved documents
-    retrieved_text = "\n\n".join(doc["page_content"][:500]
+    retrieved_text = "\n\n".join(doc["page_content"]
                                  for doc in retrieved_docs)
     if retrieved_docs:
         with st.chat_message("assistant"):
             st.markdown("### Retrieved Document Chunks:")
             for doc in retrieved_docs:
-                st.markdown(f"- {doc['page_content'][:500]}")
+                st.text(f"- {doc['page_content']}")
 
     # Format the generation queryand await a response
     with st.spinner("Generating response..."):
@@ -180,7 +177,7 @@ def run_chat_loop(documents: list[dict]) -> None:
     assistant_message = {
         "role": "assistant",
         "content": generated_answer,
-        "chunks": [doc["page_content"][:500] for doc in retrieved_docs],
+        "chunks": [doc["page_content"] for doc in retrieved_docs],
     }
     st.session_state.messages.append(assistant_message)
     with st.chat_message("assistant"):
