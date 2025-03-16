@@ -18,7 +18,7 @@ def expand_query(query: str) -> str:
     """
     Modify the query for better retrieval.
     """
-    
+
     return query
 
 
@@ -27,14 +27,19 @@ def format_prompt(context: str, question: str) -> str:
     Format the retrieval context into the final prompt.
     """
     prompt = textwrap.dedent(f"""
-        You are a helpful assistant answering questions about research grants. 
-        Based on the following context and question, please provide a concise and informative response.
-        If you cannot find information relevant to the question, please state that you don't think the information is available.
-        Your responses should be in plaintext only, not markdown or HTML.
-
+        You are a helpful document analysis agent, and your purpose is to help users by responding to questions related to a document.
+        You will be provided with the user's question, and context from the document the user is interested in. 
+        Using only the context provided, return a concise response in plain text. 
+        Do not add any markdown strings to your answer. 
+        Do not ask any additional questions in your response.
+        
+        Here is the retrieved context:
+        
         {context}
-
-        Question: {question}
+        
+        Here is the user's query:
+        
+        {question}
     """)
     return prompt.strip()
 
