@@ -6,6 +6,7 @@ import streamlit as st
 from langchain_community.document_loaders import PyMuPDFLoader
 
 LLM_API_BASE_URL = os.getenv("LLM_API_BASE_URL")
+LLM_API_KEY = os.getenv("LLM_API_KEY")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L12-v2"
 GENERATION_MODEL = "allenai/OLMo-2-1124-7B-Instruct"
 EXISTING_COLLECTION = None
@@ -13,29 +14,32 @@ EXISTING_QDRANT_PATH = None
 RETRIEVAL_K = 2  # Number of relevant documents to retrieve
 
 
-# TODO: Update for grants
 def expand_query(query: str) -> str:
     """
     Modify the query for better retrieval.
     """
-    if "Rubin" in query:
-        query += " LSST Large Synoptic Survey Telescope"
+
     return query
 
 
-# TODO: Update for our use case
 def format_prompt(context: str, question: str) -> str:
     """
     Format the retrieval context into the final prompt.
     """
     prompt = textwrap.dedent(f"""
-        You are an astrophysics expert with a focus on the Rubin telescope project 
-        (formerly known as Large Synoptic Survey Telescope - LSST). Please answer the 
-        question on astrophysics based on the following context:
-
+        You are a helpful document analysis agent, and your purpose is to help users by responding to questions related to a document.
+        You will be provided with the user's question, and context from the document the user is interested in. 
+        Using only the context provided, return a concise response in plain text. 
+        Do not add any markdown strings to your answer. 
+        Do not ask any additional questions in your response.
+        
+        Here is the retrieved context:
+        
         {context}
-
-        Question: {question}
+        
+        Here is the user's query:
+        
+        {question}
     """)
     return prompt.strip()
 
@@ -69,6 +73,10 @@ def retrieve_documents(documents: list[dict], query: str) -> list[dict]:
     """
     Call the retrieval API and return retrieved documents based on the query.
     """
+    headers = {
+        "msds-grace-api-key": os.getenv("LLM_API_KEY", "")
+    }
+
     payload = {
         "documents": documents,
         "query": expand_query(query),
@@ -77,10 +85,12 @@ def retrieve_documents(documents: list[dict], query: str) -> list[dict]:
         "embedding_model": EMBEDDING_MODEL,
     }
     try:
-        response = requests.post(f"{LLM_API_BASE_URL}/retrieve/", json=payload)
+        response = requests.post(
+            f"{LLM_API_BASE_URL}/retrieve/", headers=headers, json=payload)
         if response.status_code == 200:
             return response.json().get("docs", [])
         else:
+            print(response)
             st.error("Retrieval API returned a non-200 status.")
     except Exception as e:
         st.error(f"❌ Retrieval API failed: {e}")
@@ -91,16 +101,23 @@ def generate_response(prompt: str) -> str:
     """
     Call the generation API with the given prompt and return the generated answer.
     """
+    headers = {
+        "msds-grace-api-key": os.getenv("LLM_API_KEY", "")
+    }
+
     payload = {
         "prompt": prompt,
         "generation_model": GENERATION_MODEL,
     }
+
     try:
-        response = requests.post(f"{LLM_API_BASE_URL}/generate/", json=payload)
+        response = requests.post(
+            f"{LLM_API_BASE_URL}/generate/", headers=headers, json=payload)
         if response.status_code == 200:
             return response.json().get("answer", "")
         else:
-            st.error("Generation API returned a non-200 status.")
+            print(response)
+            st.error("Retrieval API returned a non-200 status")
     except Exception as e:
         st.error(f"❌ Generation API failed: {e}")
     return "⚠️ Failed to generate response."
@@ -148,12 +165,13 @@ def run_chat_loop(documents: list[dict]) -> None:
         retrieved_docs = retrieve_documents(documents, query)
 
     # Prepare text from retrieved documents
-    retrieved_text = "\n\n".join(doc["page_content"][:500] for doc in retrieved_docs)
+    retrieved_text = "\n\n".join(doc["page_content"]
+                                 for doc in retrieved_docs)
     if retrieved_docs:
         with st.chat_message("assistant"):
             st.markdown("### Retrieved Document Chunks:")
             for doc in retrieved_docs:
-                st.markdown(f"- {doc['page_content'][:500]}")
+                st.text(f"- {doc['page_content']}")
 
     # Format the generation queryand await a response
     with st.spinner("Generating response..."):
@@ -164,7 +182,7 @@ def run_chat_loop(documents: list[dict]) -> None:
     assistant_message = {
         "role": "assistant",
         "content": generated_answer,
-        "chunks": [doc["page_content"][:500] for doc in retrieved_docs],
+        "chunks": [doc["page_content"] for doc in retrieved_docs],
     }
     st.session_state.messages.append(assistant_message)
     with st.chat_message("assistant"):
