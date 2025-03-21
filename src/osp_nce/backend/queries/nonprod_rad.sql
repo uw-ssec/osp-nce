@@ -20,7 +20,7 @@ WITH
             modifiedSponsorAwardedTotal,
             sponsorHasDeadline,
             sponsorDeadlineDate,
-            RADeGC1Key,
+            ---RADeGC1Key,
             RADAwardModificationRequestKey,
             ROW_NUMBER() OVER (
                 PARTITION BY
@@ -128,10 +128,10 @@ WITH
             awrd.AwardScheduleStartDate,
             awrd.AwardScheduleEndDate,
             -- EGC1 data
-            egc1.applicationType AS egc1_application_type,
-            egc1.applicationStatus AS egc1_application_status,
-            egc1.projectType,
-            egc1.sponsoredProgramActivityType,
+            -- egc1.applicationType AS egc1_application_type,
+            -- egc1.applicationStatus AS egc1_application_status,
+            --egc1.projectType,
+            -- egc1.sponsoredProgramActivityType,
             -- Compliance data
             comp.isAnimalUse,
             comp.isClinicalTrial,
@@ -141,8 +141,8 @@ WITH
             deduplicated_mods mod
             LEFT JOIN mod_category_pivot cats ON mod.displayIdentifier = cats.displayIdentifier
             LEFT JOIN deduplicated_awards awrd ON mod.WorkdayAwardNumber = awrd.AwardNumber
-            LEFT JOIN RADDB.UW.vEGC1 egc1 ON awrd.ProposalID = egc1.applicationUTN
-            LEFT JOIN RADDB.UW.vCompliance comp ON egc1.RADEGC1Key = comp.RADEGC1Key
+            --LEFT JOIN RADDB.UW.vEGC1 egc1 ON awrd.ProposalID = egc1.applicationUTN
+            LEFT JOIN RADDB.UW.vCompliance comp ON mod.WorkdayAwardNumber = comp.WorkdayAwardNumber
     )
     -- Final selection
 SELECT
